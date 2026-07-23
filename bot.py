@@ -34,6 +34,7 @@ from discord.ext import commands
 
 from config import Config, ConfigError, configure_logging
 from database import Database
+from embeddings import EmbeddingClient, cosine_similarity
 from prompts import COMPARE_INSTRUCTIONS, build_system_prompt
 from scraper import PropFirmScraper
 from seed import seed_database
@@ -53,6 +54,7 @@ class TickShiftBot(commands.Bot):
         scraper: PropFirmScraper,
         validator: FirmValidator,
         logger: logging.Logger,
+        embedder: Optional[EmbeddingClient] = None,
     ) -> None:
         """Construct the bot and its collaborators.
 
@@ -62,6 +64,7 @@ class TickShiftBot(commands.Bot):
             scraper: Prop firm scraper.
             validator: Firm validator.
             logger: Application logger.
+            embedder: Optional Voyage embedding client for semantic caching.
         """
         intents = discord.Intents.default()
         intents.message_content = True  # Required to read command text.
@@ -75,7 +78,49 @@ class TickShiftBot(commands.Bot):
         self.scraper = scraper
         self.validator = validator
         self.log = logger
+        self.embedder = embedder
         self.claude = anthropic.AsyncAnthropic(api_key=config.anthropic_api_key)
+
+    def semantic_enabled(self) -> bool:
+        """Return whether semantic caching is active (client + toggle present)."""
+        return self.embedder is not None and self.config.semantic_cache_enabled
+
+    def semantic_lookup(
+        self, kb_version: str, query_embedding: List[float]
+    ) -> Optional[str]:
+        """Find a cached answer whose question is semantically close enough.
+
+        Args:
+            kb_version: Current knowledge base fingerprint (limits candidates to
+                answers produced under the same data).
+            query_embedding: Embedding of the incoming question.
+
+        Returns:
+            The best matching cached answer if its similarity meets the
+            configured threshold, otherwise ``None``. Runs synchronously; call
+            via ``asyncio.to_thread``.
+        """
+        candidates = self.db.get_semantic_candidates(kb_version, namespace="ask")
+        best_answer: Optional[str] = None
+        best_sim = 0.0
+        best_id: Optional[int] = None
+        for candidate in candidates:
+            sim = cosine_similarity(query_embedding, candidate["embedding"])
+            if sim > best_sim:
+                best_sim = sim
+                best_answer = candidate["answer"]
+                best_id = candidate["id"]
+
+        if best_answer is not None and best_sim >= self.config.semantic_cache_threshold:
+            if best_id is not None:
+                self.db.register_cache_hit(best_id)
+            self.log.info(
+                "Semantic cache hit (similarity=%.3f, threshold=%.2f).",
+                best_sim,
+                self.config.semantic_cache_threshold,
+            )
+            return best_answer
+        return None
 
     # -- lifecycle ---------------------------------------------------------
 
@@ -110,6 +155,25 @@ class TickShiftBot(commands.Bot):
                 self.log.warning("✗ Validation source not reachable.")
         except Exception:  # noqa: BLE001
             self.log.exception("✗ Validation source check failed.")
+
+        # Verify the semantic cache embedding backend, if configured.
+        if self.semantic_enabled():
+            try:
+                ok = await asyncio.to_thread(self.embedder.health_check)
+                if ok:
+                    self.log.info("✓ Semantic cache (Voyage embeddings) OK.")
+                else:
+                    self.log.warning(
+                        "✗ Voyage embeddings unreachable; semantic cache "
+                        "inactive (exact-match cache still works)."
+                    )
+            except Exception:  # noqa: BLE001
+                self.log.exception("✗ Voyage embeddings check failed.")
+        else:
+            self.log.info(
+                "Semantic cache disabled (no VOYAGE_API_KEY); exact-match "
+                "cache still active."
+            )
 
         self.log.info("🚀 TickShift AI bot is ready.")
 
@@ -356,20 +420,36 @@ def register_commands(bot: TickShiftBot) -> None:
         async with ctx.typing():
             try:
                 qhash = cache_key("ask", normalize_question(question))
+                query_embedding: Optional[List[float]] = None
 
-                # Fast path: if we've answered this exact question against the
-                # current knowledge base before, reuse it and skip Claude.
                 if bot.config.qa_cache_enabled:
                     current_prompt = await bot.build_prompt()
+                    current_kb = kb_fingerprint(current_prompt)
+
+                    # 1) Exact match — cheapest, no embedding or Claude call.
                     cached = await asyncio.to_thread(
                         bot.db.get_cached_answer,
                         qhash,
-                        kb_fingerprint(current_prompt),
+                        current_kb,
                         bot.config.qa_cache_ttl_days,
                     )
                     if cached:
                         await send_chunked(ctx, cached)
                         return
+
+                    # 2) Semantic match — reuse an answer to a differently-worded
+                    #    but equivalent question (embedding is cheap vs. Claude).
+                    if bot.semantic_enabled():
+                        query_embedding = await asyncio.to_thread(
+                            bot.embedder.embed, question, "query"
+                        )
+                        if query_embedding:
+                            hit = await asyncio.to_thread(
+                                bot.semantic_lookup, current_kb, query_embedding
+                            )
+                            if hit:
+                                await send_chunked(ctx, hit)
+                                return
 
                 firm_names, ambiguous = await bot.extract_firm_names(question)
 
@@ -392,7 +472,8 @@ def register_commands(bot: TickShiftBot) -> None:
                 system_prompt = await bot.build_prompt()
                 answer = await bot.ask_claude(system_prompt, question)
 
-                # Cache the fresh answer against the KB that produced it.
+                # Cache the fresh answer (with its embedding) against the KB
+                # that produced it, so both exact and semantic hits work later.
                 if bot.config.qa_cache_enabled and answer:
                     await asyncio.to_thread(
                         bot.db.store_cached_answer,
@@ -400,6 +481,8 @@ def register_commands(bot: TickShiftBot) -> None:
                         question,
                         answer,
                         kb_fingerprint(system_prompt),
+                        query_embedding,
+                        "ask",
                     )
 
                 await send_chunked(ctx, answer or "I couldn't find an answer to that.")
@@ -471,6 +554,8 @@ def register_commands(bot: TickShiftBot) -> None:
                         f"compare {firm1} vs {firm2}",
                         answer,
                         kb_fingerprint(system_prompt),
+                        None,
+                        "compare",
                     )
 
                 await _send_comparison_embed(ctx, firm1, firm2, answer)
@@ -818,7 +903,24 @@ def main() -> None:
     )
     validator = FirmValidator(db, scraper)
 
-    bot = TickShiftBot(config, db, scraper, validator, logger)
+    # Optionally set up semantic (meaning-based) answer caching via Voyage.
+    embedder: Optional[EmbeddingClient] = None
+    if config.semantic_cache_enabled and config.voyage_api_key:
+        try:
+            embedder = EmbeddingClient(config.voyage_api_key, config.voyage_model)
+        except Exception:  # noqa: BLE001
+            logger.exception(
+                "Could not initialise Voyage embeddings; semantic caching "
+                "disabled (exact-match caching still active)."
+            )
+            embedder = None
+    elif config.semantic_cache_enabled:
+        logger.info(
+            "VOYAGE_API_KEY not set; semantic caching disabled "
+            "(exact-match caching still active)."
+        )
+
+    bot = TickShiftBot(config, db, scraper, validator, logger, embedder)
     register_commands(bot)
 
     try:

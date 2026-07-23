@@ -19,5 +19,8 @@ requests>=2.32.0
 # HTML parsing
 beautifulsoup4>=4.12.3
 
+# Voyage AI embeddings (semantic / meaning-based answer caching)
+voyageai>=0.3.0
+
 # Optional: JavaScript-rendered pages (uncomment if propfirmmatch.com requires JS)
 # selenium>=4.21.0

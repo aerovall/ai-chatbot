@@ -33,6 +33,10 @@ Additional capabilities:
   `qa_cache` table instead of calling Claude again, saving API credits. Cached
   answers are fingerprinted against the knowledge base, so they're automatically
   regenerated whenever firm or promo data changes.
+- **Semantic caching** — with a Voyage AI key, `!ask` also matches
+  differently-worded questions that mean the same thing (e.g. "fastest payouts"
+  ≈ "quickest withdrawals") using embeddings, further reducing Claude calls.
+  Falls back to exact-match caching if no key is configured.
 - **Long-message handling** — responses are chunked to respect Discord's
   2000-character limit.
 - **Robust error handling & logging** — friendly Discord messages, full logs to
@@ -162,6 +166,10 @@ tickshift-discord-bot/
 | `SEED_ON_STARTUP` | — | `true` | Seed the curated TickShift firm catalogue (firms + promo codes) on startup. |
 | `QA_CACHE_ENABLED` | — | `true` | Cache Claude answers so repeat questions don't re-hit the API. |
 | `QA_CACHE_TTL_DAYS` | — | `0` | Max age (days) for a cached answer; `0` = invalidate only on data change. |
+| `SEMANTIC_CACHE_ENABLED` | — | `true` | Enable meaning-based matching of questions (needs `VOYAGE_API_KEY`). |
+| `VOYAGE_API_KEY` | — | — | Voyage AI key for semantic caching. Omit to use exact-match caching only. |
+| `VOYAGE_MODEL` | — | `voyage-3.5` | Voyage embedding model. |
+| `SEMANTIC_CACHE_THRESHOLD` | — | `0.85` | Cosine-similarity threshold for treating two questions as equivalent. |
 | `LOG_LEVEL` | — | `INFO` | Logging verbosity. |
 | `LOG_FILE` | — | `logs/bot.log` | Log file path. |
 
