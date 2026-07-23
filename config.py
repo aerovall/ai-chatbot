@@ -60,6 +60,18 @@ def _get_int(name: str, default: int) -> int:
         return default
 
 
+def _get_bool(name: str, default: bool) -> bool:
+    """Parse a boolean environment variable, falling back to ``default``.
+
+    Truthy values (case-insensitive): ``1``, ``true``, ``yes``, ``on``.
+    Falsy values: ``0``, ``false``, ``no``, ``off``.
+    """
+    raw = os.getenv(name)
+    if raw is None or raw.strip() == "":
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
 @dataclass(frozen=True)
 class Config:
     """Immutable, validated view of the bot's runtime configuration."""
@@ -76,6 +88,7 @@ class Config:
     command_prefix: str = "!"
     scrape_min_interval: float = 2.0
     search_refresh_days: int = 30
+    seed_on_startup: bool = True
     log_level: str = "INFO"
     log_file: str = "logs/bot.log"
 
@@ -126,6 +139,7 @@ class Config:
             command_prefix=os.getenv("COMMAND_PREFIX", "!").strip() or "!",
             scrape_min_interval=_get_float("SCRAPE_MIN_INTERVAL", 2.0),
             search_refresh_days=_get_int("SEARCH_REFRESH_DAYS", 30),
+            seed_on_startup=_get_bool("SEED_ON_STARTUP", True),
             log_level=os.getenv("LOG_LEVEL", "INFO").strip().upper() or "INFO",
             log_file=os.getenv("LOG_FILE", "logs/bot.log").strip() or "logs/bot.log",
         )

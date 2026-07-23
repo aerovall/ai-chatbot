@@ -35,6 +35,7 @@ from config import Config, ConfigError, configure_logging
 from database import Database
 from prompts import COMPARE_INSTRUCTIONS, build_system_prompt
 from scraper import PropFirmScraper
+from seed import seed_database
 from validator import FirmValidator
 
 DISCORD_MESSAGE_LIMIT = 2000
@@ -703,6 +704,13 @@ def main() -> None:
             "PostgreSQL is running."
         )
         sys.exit(1)
+
+    # Seed the curated TickShift firm catalogue (idempotent upserts).
+    if config.seed_on_startup:
+        try:
+            seed_database(db)
+        except Exception:  # noqa: BLE001 - seeding must never block startup.
+            logger.exception("Failed to seed the TickShift catalogue.")
 
     scraper = PropFirmScraper(
         base_url=config.propfirmmatch_base_url,
