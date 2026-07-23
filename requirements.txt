@@ -1,0 +1,23 @@
+# Discord bot framework
+discord.py>=2.3.2
+
+# Official Anthropic Claude SDK
+anthropic>=0.39.0
+
+# Environment variable management
+python-dotenv>=1.0.1
+
+# PostgreSQL adapter
+psycopg2-binary>=2.9.9
+
+# ORM for database queries
+SQLAlchemy>=2.0.30
+
+# HTTP client for web scraping / validation
+requests>=2.32.0
+
+# HTML parsing
+beautifulsoup4>=4.12.3
+
+# Optional: JavaScript-rendered pages (uncomment if propfirmmatch.com requires JS)
+# selenium>=4.21.0
