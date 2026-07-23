@@ -26,7 +26,7 @@ import json
 import logging
 import re
 import sys
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, NamedTuple, Optional, Tuple, Union
 
 import anthropic
 import discord
@@ -35,13 +35,34 @@ from discord.ext import commands
 from config import Config, ConfigError, configure_logging
 from database import Database
 from embeddings import EmbeddingClient, cosine_similarity
-from prompts import COMPARE_INSTRUCTIONS, build_system_prompt, wrap_user_question
+from faq import FAQKnowledgeBase
+from prompts import (
+    COMPARE_INSTRUCTIONS,
+    build_faq_block,
+    build_system_prompt,
+    wrap_user_question,
+)
 from scraper import PropFirmScraper
 from seed import seed_database
 from validator import FirmValidator
 
 DISCORD_MESSAGE_LIMIT = 2000
 EMBED_DESCRIPTION_LIMIT = 4096
+
+
+class PromptBundle(NamedTuple):
+    """A built system prompt plus the fingerprint used by the answer cache.
+
+    Attributes:
+        system: System prompt as a list of content blocks. The first (stable)
+            block carries a ``cache_control`` marker for Anthropic prompt
+            caching; an optional second block holds per-question FAQ excerpts.
+        fingerprint: Hash of the stable knowledge (catalogue + FAQ version)
+            used to validate/invalidate cached answers.
+    """
+
+    system: List[Dict[str, object]]
+    fingerprint: str
 
 
 class TickShiftBot(commands.Bot):
@@ -95,6 +116,8 @@ class TickShiftBot(commands.Bot):
         self.validator = validator
         self.log = logger
         self.embedder = embedder
+        # FAQ knowledge base for FAQ-first answering (degrades to empty on error).
+        self.faq = FAQKnowledgeBase() if config.faq_enabled else None
         self.claude = anthropic.AsyncAnthropic(api_key=config.anthropic_api_key)
 
     def semantic_enabled(self) -> bool:
@@ -286,6 +309,14 @@ class TickShiftBot(commands.Bot):
                 "cache still active."
             )
 
+        # Report FAQ knowledge base status.
+        if self.faq and self.faq.version != "none":
+            self.log.info(
+                "✓ FAQ knowledge base loaded (version %s).", self.faq.version
+            )
+        else:
+            self.log.info("FAQ knowledge base disabled or unavailable.")
+
         self.log.info("🚀 TickShift AI bot is ready.")
 
     async def on_command_error(
@@ -308,12 +339,16 @@ class TickShiftBot(commands.Bot):
     # -- Claude helpers ----------------------------------------------------
 
     async def ask_claude(
-        self, system_prompt: str, user_message: str
+        self,
+        system_prompt: Union[str, List[Dict[str, object]]],
+        user_message: str,
     ) -> str:
         """Send a single-turn message to Claude and return its text reply.
 
         Args:
-            system_prompt: The dynamic system prompt.
+            system_prompt: The dynamic system prompt — either a plain string or
+                a list of system content blocks (which may carry
+                ``cache_control`` markers for prompt caching).
             user_message: The user's message content.
 
         Returns:
@@ -328,6 +363,15 @@ class TickShiftBot(commands.Bot):
             system=system_prompt,
             messages=[{"role": "user", "content": user_message}],
         )
+        usage = getattr(response, "usage", None)
+        if usage is not None:
+            self.log.debug(
+                "Claude usage: input=%s cache_read=%s cache_write=%s output=%s",
+                getattr(usage, "input_tokens", "?"),
+                getattr(usage, "cache_read_input_tokens", "?"),
+                getattr(usage, "cache_creation_input_tokens", "?"),
+                getattr(usage, "output_tokens", "?"),
+            )
         return "".join(
             block.text for block in response.content if block.type == "text"
         ).strip()
@@ -379,15 +423,29 @@ class TickShiftBot(commands.Bot):
     # -- knowledge base helpers -------------------------------------------
 
     async def build_prompt(
-        self, extra_instructions: Optional[str] = None
-    ) -> str:
-        """Fetch current DB state and build a fresh system prompt.
+        self,
+        extra_instructions: Optional[str] = None,
+        question: Optional[str] = None,
+    ) -> "PromptBundle":
+        """Fetch current DB state and build a fresh, cache-friendly prompt.
+
+        The prompt is split into two system blocks:
+
+        1. A **stable** block (instructions + firm catalogue + help-center
+           links) marked with ``cache_control`` so Anthropic prompt-caches it —
+           repeat requests read this prefix at ~10% of the normal input price.
+        2. An optional **varying** block of FAQ excerpts selected for this
+           specific question. It sits after the cache breakpoint, so it never
+           invalidates the cached prefix.
 
         Args:
             extra_instructions: Optional task-specific guidance to include.
+            question: The user's question; when given (and the FAQ is enabled),
+                relevant official-FAQ excerpts are retrieved and appended.
 
         Returns:
-            A complete system prompt reflecting the live knowledge base.
+            A :class:`PromptBundle` with the system blocks and the knowledge
+            fingerprint used by the answer cache.
         """
         markets = self.allowed_markets()
         include = self.included_firms()
@@ -395,7 +453,38 @@ class TickShiftBot(commands.Bot):
         promos = await asyncio.to_thread(
             self.db.get_active_promo_codes, markets, include
         )
-        return build_system_prompt(firms, promos, extra_instructions)
+        help_centers = (
+            self.faq.help_center_lines(markets, include) if self.faq else None
+        )
+        stable = build_system_prompt(
+            firms, promos, extra_instructions, help_centers
+        )
+
+        system: List[Dict[str, object]] = [
+            {
+                "type": "text",
+                "text": stable,
+                "cache_control": {"type": "ephemeral"},
+            }
+        ]
+
+        if self.faq and question:
+            excerpts = await asyncio.to_thread(
+                self.faq.select_excerpts,
+                question,
+                markets,
+                include,
+                self.config.faq_max_chars,
+            )
+            if excerpts:
+                system.append({"type": "text", "text": build_faq_block(excerpts)})
+
+        # The answer-cache fingerprint covers the stable knowledge plus the FAQ
+        # version — NOT the per-question excerpt — so cached answers stay valid
+        # until the underlying data or FAQ file actually changes.
+        faq_version = self.faq.version if self.faq else "off"
+        fingerprint = kb_fingerprint(f"{stable}|faq:{faq_version}")
+        return PromptBundle(system=system, fingerprint=fingerprint)
 
     async def validate_firms(
         self, firm_names: List[str]
@@ -559,8 +648,7 @@ def register_commands(bot: TickShiftBot) -> None:
                 query_embedding: Optional[List[float]] = None
 
                 if bot.config.qa_cache_enabled:
-                    current_prompt = await bot.build_prompt()
-                    current_kb = kb_fingerprint(current_prompt)
+                    current_kb = (await bot.build_prompt()).fingerprint
 
                     # 1) Exact match — cheapest, no embedding or Claude call.
                     cached = await asyncio.to_thread(
@@ -604,10 +692,11 @@ def register_commands(bot: TickShiftBot) -> None:
                         await ctx.send(message)
                         return
 
-                # Rebuild the prompt: validation may have ingested new firms.
-                system_prompt = await bot.build_prompt()
+                # Rebuild the prompt (validation may have ingested new firms),
+                # retrieving official-FAQ excerpts relevant to this question.
+                bundle = await bot.build_prompt(question=question)
                 answer = await bot.ask_claude(
-                    system_prompt, wrap_user_question(question)
+                    bundle.system, wrap_user_question(question)
                 )
 
                 # Cache the fresh answer (with its embedding) against the KB
@@ -618,7 +707,7 @@ def register_commands(bot: TickShiftBot) -> None:
                         qhash,
                         question,
                         answer,
-                        kb_fingerprint(system_prompt),
+                        bundle.fingerprint,
                         query_embedding,
                         "ask",
                     )
@@ -666,11 +755,13 @@ def register_commands(bot: TickShiftBot) -> None:
                 qhash = cache_key("compare", pair)
 
                 if bot.config.qa_cache_enabled:
-                    current_prompt = await bot.build_prompt(COMPARE_INSTRUCTIONS)
+                    current_kb = (
+                        await bot.build_prompt(COMPARE_INSTRUCTIONS)
+                    ).fingerprint
                     cached = await asyncio.to_thread(
                         bot.db.get_cached_answer,
                         qhash,
-                        kb_fingerprint(current_prompt),
+                        current_kb,
                         bot.config.qa_cache_ttl_days,
                     )
                     if cached:
@@ -702,9 +793,13 @@ def register_commands(bot: TickShiftBot) -> None:
                             )
                             return
 
-                system_prompt = await bot.build_prompt(COMPARE_INSTRUCTIONS)
+                # Retrieve FAQ excerpts for both firms via a synthetic question.
+                bundle = await bot.build_prompt(
+                    COMPARE_INSTRUCTIONS,
+                    question=f"compare {firm1} vs {firm2} rules pricing payouts",
+                )
                 answer = await bot.ask_claude(
-                    system_prompt,
+                    bundle.system,
                     f"Compare {firm1} and {firm2} for a trader deciding between them.",
                 )
 
@@ -714,7 +809,7 @@ def register_commands(bot: TickShiftBot) -> None:
                         qhash,
                         f"compare {firm1} vs {firm2}",
                         answer,
-                        kb_fingerprint(system_prompt),
+                        bundle.fingerprint,
                         None,
                         "compare",
                     )
