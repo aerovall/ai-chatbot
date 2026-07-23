@@ -1,0 +1,1473 @@
+{
+ "firms": [
+  {
+   "slug": "tradeify",
+   "name": "Tradeify",
+   "country": "United States",
+   "founded": 2023,
+   "maxAllocation": "$750K",
+   "promoCode": "",
+   "discountPct": 0,
+   "platforms": [
+    "tradovate",
+    "wealthcharts",
+    "rithmic"
+   ],
+   "payoutMethods": [
+    "rise",
+    "plane",
+    "wise"
+   ],
+   "payoutFrequency": "Daily – 5 days (by plan)",
+   "tagline": "Pass in a day, get paid every five — or skip straight to funded.",
+   "description": "Tradeify offers three routes to funding: Growth evaluations you can pass in a single day, Select plans with daily payouts, no daily loss limit and flexible funded rules, and Lightning accounts with instant funding. Every plan uses a genuine end-of-day trailing drawdown with no activation fees.",
+   "tradingRules": {
+    "weekendHolding": "Not allowed",
+    "overnightHolding": "Not allowed",
+    "hedging": "Not allowed",
+    "copyTrading": "Allowed (own accounts)",
+    "eas": "Semi-automated only"
+   },
+   "accountTypes": [
+    {
+     "name": "Growth (Pass in 1 Day)",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "None",
+     "sizes": [
+      {
+       "size": "25K",
+       "price": 59,
+       "profitSplit": 90
+      },
+      {
+       "size": "50K",
+       "price": 87,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 153,
+       "profitSplit": 90
+      },
+      {
+       "size": "150K",
+       "price": 221,
+       "profitSplit": 90
+      }
+     ]
+    },
+    {
+     "name": "Select (Pass in 3 Days)",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "40%",
+     "sizes": [
+      {
+       "size": "25K",
+       "price": 65,
+       "profitSplit": 90
+      },
+      {
+       "size": "50K",
+       "price": 99,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 159,
+       "profitSplit": 90
+      },
+      {
+       "size": "150K",
+       "price": 221,
+       "profitSplit": 90
+      }
+     ]
+    },
+    {
+     "name": "Lightning (Instant Funding)",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "20%",
+     "sizes": [
+      {
+       "size": "25K",
+       "price": 207,
+       "profitSplit": 90
+      },
+      {
+       "size": "50K",
+       "price": 295,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 396,
+       "profitSplit": 90
+      },
+      {
+       "size": "150K",
+       "price": 478,
+       "profitSplit": 90
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "alpha-futures",
+   "name": "Alpha Futures",
+   "country": "Netherlands",
+   "founded": 2024,
+   "maxAllocation": "$450K",
+   "promoCode": "170043",
+   "discountPct": 25,
+   "platforms": [
+    "tradovate",
+    "ninjatrader",
+    "tradingview",
+    "rithmic"
+   ],
+   "payoutMethods": [
+    "rise",
+    "wise"
+   ],
+   "payoutFrequency": "Bi-weekly",
+   "tagline": "Transparent rules and a genuine end-of-day drawdown.",
+   "description": "Alpha Futures built its reputation on transparency: every rule is published and the drawdown is a true end-of-day trail. Zero accounts have no eval consistency rule and no activation fee (40% consistency once Qualified); Premium drops the daily loss guard with a 40% rule during the eval only; Direct skips the evaluation entirely — straight to a Qualified account with a 20% consistency rule and tiered payout targets. An Advanced tier is also available.",
+   "tradingRules": {
+    "weekendHolding": "Not allowed",
+    "overnightHolding": "Allowed (funded)",
+    "hedging": "Not allowed",
+    "copyTrading": "Allowed (own accounts)",
+    "eas": "Allowed with approval"
+   },
+   "accountTypes": [
+    {
+     "name": "Zero",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "40% (funded only)",
+     "sizes": [
+      {
+       "size": "25K",
+       "price": 59.25,
+       "profitSplit": 90
+      },
+      {
+       "size": "50K",
+       "price": 89.25,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 179.25,
+       "profitSplit": 90
+      }
+     ]
+    },
+    {
+     "name": "Premium",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "40% (eval only)",
+     "sizes": [
+      {
+       "size": "50K",
+       "price": 119.25,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 201.75,
+       "profitSplit": 90
+      },
+      {
+       "size": "150K",
+       "price": 284.25,
+       "profitSplit": 90
+      }
+     ]
+    },
+    {
+     "name": "Direct (Straight to Qualified)",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "20%",
+     "sizes": [
+      {
+       "size": "25K",
+       "price": 261.75,
+       "profitSplit": 90
+      },
+      {
+       "size": "50K",
+       "price": 389.25,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 516.75,
+       "profitSplit": 90
+      },
+      {
+       "size": "150K",
+       "price": 644.25,
+       "profitSplit": 90
+      }
+     ]
+    },
+    {
+     "name": "Advanced",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "40% (eval only)",
+     "sizes": [
+      {
+       "size": "50K",
+       "price": 156.75,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 261.75,
+       "profitSplit": 90
+      },
+      {
+       "size": "150K",
+       "price": 366.75,
+       "profitSplit": 90
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "apex-trader-funding",
+   "name": "Apex Trader Funding",
+   "country": "United States",
+   "founded": 2021,
+   "maxAllocation": "$3M",
+   "promoCode": "",
+   "discountPct": 0,
+   "platforms": [
+    "ninjatrader",
+    "rithmic",
+    "tradovate",
+    "tradingview",
+    "wealthcharts"
+   ],
+   "payoutMethods": [
+    "plane",
+    "plaid"
+   ],
+   "payoutFrequency": "Every 5 trading days",
+   "tagline": "The volume leader — up to 20 accounts and legendary discounts.",
+   "description": "Apex Trader Funding is the largest futures funder by account volume, famous for near-permanent 90% discounts and letting traders run up to 20 funded accounts simultaneously. Evaluations are one-step with an intraday trailing threshold, no daily loss limit and a 1-day minimum. Funded Performance Accounts pay out every 5 trading days, carry a 50% consistency rule and a daily loss limit, and activate for a one-time $69–$129 fee on Standard plans — waived on the No Activation Fee track.",
+   "tradingRules": {
+    "weekendHolding": "Not allowed",
+    "overnightHolding": "Not allowed",
+    "hedging": "Not allowed",
+    "copyTrading": "Allowed (up to 20 accounts)",
+    "eas": "Semi-automated only"
+   },
+   "accountTypes": [
+    {
+     "name": "Intraday Trail · Standard",
+     "drawdownMode": "Intraday Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "50% (funded)",
+     "sizes": [
+      {
+       "size": "25K",
+       "price": 19.9,
+       "profitSplit": 90
+      },
+      {
+       "size": "50K",
+       "price": 24.9,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 39.9,
+       "profitSplit": 90
+      },
+      {
+       "size": "150K",
+       "price": 59.9,
+       "profitSplit": 90
+      }
+     ]
+    },
+    {
+     "name": "Intraday Trail · No Activation Fee",
+     "drawdownMode": "Intraday Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "50% (funded)",
+     "sizes": [
+      {
+       "size": "25K",
+       "price": 69,
+       "profitSplit": 90
+      },
+      {
+       "size": "50K",
+       "price": 79,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 109,
+       "profitSplit": 90
+      },
+      {
+       "size": "150K",
+       "price": 169,
+       "profitSplit": 90
+      }
+     ]
+    },
+    {
+     "name": "EOD Trail · Standard",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "50% (funded)",
+     "sizes": [
+      {
+       "size": "25K",
+       "price": 39,
+       "profitSplit": 90
+      },
+      {
+       "size": "50K",
+       "price": 45,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 59,
+       "profitSplit": 90
+      },
+      {
+       "size": "150K",
+       "price": 109,
+       "profitSplit": 90
+      }
+     ]
+    },
+    {
+     "name": "EOD Trail · No Activation Fee",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "50% (funded)",
+     "sizes": [
+      {
+       "size": "25K",
+       "price": 89,
+       "profitSplit": 90
+      },
+      {
+       "size": "50K",
+       "price": 109,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 139,
+       "profitSplit": 90
+      },
+      {
+       "size": "150K",
+       "price": 229,
+       "profitSplit": 90
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "lucid-trading",
+   "name": "Lucid Trading",
+   "country": "United States",
+   "founded": 2024,
+   "maxAllocation": "$600K",
+   "promoCode": "TICKSHIFT",
+   "discountPct": 40,
+   "platforms": [
+    "tradovate",
+    "tradingview",
+    "ninjatrader"
+   ],
+   "payoutMethods": [
+    "rise",
+    "plane"
+   ],
+   "payoutFrequency": "Every 3 days",
+   "tagline": "One-day evals, free activation and payouts every 3 days.",
+   "description": "Lucid Trading's LucidPro program lets you pass in as little as one day, activates funded accounts for free, and pays out every three days — go live after five payouts. Funded accounts use an end-of-day trail plus the LucidScale DLL (60% of peak EOD balance) above the initial trail, with a real-time trader dashboard.",
+   "tradingRules": {
+    "weekendHolding": "Not allowed",
+    "overnightHolding": "Not allowed",
+    "hedging": "Not allowed",
+    "copyTrading": "Allowed (own accounts)",
+    "eas": "Not allowed"
+   },
+   "accountTypes": [
+    {
+     "name": "LucidPro",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "40% (funded)",
+     "sizes": [
+      {
+       "size": "25K",
+       "price": 81,
+       "profitSplit": 90
+      },
+      {
+       "size": "50K",
+       "price": 111,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 171,
+       "profitSplit": 90
+      },
+      {
+       "size": "150K",
+       "price": 222,
+       "profitSplit": 90
+      }
+     ]
+    },
+    {
+     "name": "LucidFlex",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "50% (eval only)",
+     "sizes": [
+      {
+       "size": "25K",
+       "price": 60,
+       "profitSplit": 90
+      },
+      {
+       "size": "50K",
+       "price": 84,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 135,
+       "profitSplit": 90
+      },
+      {
+       "size": "150K",
+       "price": 252,
+       "profitSplit": 90
+      }
+     ]
+    },
+    {
+     "name": "LucidDirect (Straight to Funded)",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "20%",
+     "sizes": [
+      {
+       "size": "25K",
+       "price": 204,
+       "profitSplit": 90
+      },
+      {
+       "size": "50K",
+       "price": 312,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 420,
+       "profitSplit": 90
+      },
+      {
+       "size": "150K",
+       "price": 504,
+       "profitSplit": 90
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "take-profit-trader",
+   "name": "Take Profit Trader",
+   "country": "United States",
+   "founded": 2021,
+   "maxAllocation": "$450K",
+   "promoCode": "",
+   "discountPct": 0,
+   "platforms": [
+    "ninjatrader",
+    "tradovate",
+    "tradingview",
+    "rithmic"
+   ],
+   "payoutMethods": [
+    "plane",
+    "wise",
+    "plaid"
+   ],
+   "payoutFrequency": "Same day (PRO+)",
+   "tagline": "Daily loss limits removed — one EOD trail is the only loss rule.",
+   "description": "Take Profit Trader runs monthly-subscription evaluations where the daily loss limit has been removed entirely — the end-of-day trailing drawdown is the only loss rule. Pass the test and activate a PRO account with same-day withdrawals, or upgrade to PRO+ for a 90% split. No trading bots or counter positions allowed, and consistent trading is required.",
+   "tradingRules": {
+    "weekendHolding": "Not allowed",
+    "overnightHolding": "Not allowed",
+    "hedging": "Not allowed",
+    "copyTrading": "Not allowed",
+    "eas": "Not allowed"
+   },
+   "accountTypes": [
+    {
+     "name": "PRO Evaluation",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "Required",
+     "sizes": [
+      {
+       "size": "25K",
+       "price": 150,
+       "profitSplit": 80
+      },
+      {
+       "size": "50K",
+       "price": 170,
+       "profitSplit": 80
+      },
+      {
+       "size": "75K",
+       "price": 245,
+       "profitSplit": 80
+      },
+      {
+       "size": "100K",
+       "price": 330,
+       "profitSplit": 80
+      },
+      {
+       "size": "150K",
+       "price": 360,
+       "profitSplit": 80
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "topstep",
+   "name": "Topstep",
+   "country": "United States",
+   "founded": 2012,
+   "maxAllocation": "$450K",
+   "promoCode": "",
+   "discountPct": 0,
+   "platforms": [
+    "tradingview",
+    "ninjatrader",
+    "tradovate"
+   ],
+   "payoutMethods": [
+    "wise",
+    "plane"
+   ],
+   "payoutFrequency": "Daily (up to 5/week)",
+   "tagline": "The original futures prop firm — 14 years of payouts.",
+   "description": "Founded in 2012, Topstep is the longest-running futures prop firm and the industry benchmark for reliability. The Trading Combine is a monthly subscription with one rule — the Max Loss Limit — plus a 50% consistency target. Choose Standard ($149 express activation when funded) or the No Activation Fee track, and toggle Responsible Trading Advantage to add a daily loss limit in exchange for double payout caps. Funded traders keep 100% of their first $10,000, then 90%.",
+   "tradingRules": {
+    "weekendHolding": "Not allowed",
+    "overnightHolding": "Not allowed",
+    "hedging": "Not allowed",
+    "copyTrading": "Allowed (own accounts)",
+    "eas": "Semi-automated only"
+   },
+   "accountTypes": [
+    {
+     "name": "Standard · RTA On",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "50% (eval)",
+     "sizes": [
+      {
+       "size": "50K",
+       "price": 49,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 99,
+       "profitSplit": 90
+      },
+      {
+       "size": "150K",
+       "price": 199,
+       "profitSplit": 90
+      }
+     ]
+    },
+    {
+     "name": "Standard · RTA Off",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "50% (eval)",
+     "sizes": [
+      {
+       "size": "50K",
+       "price": 49,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 99,
+       "profitSplit": 90
+      },
+      {
+       "size": "150K",
+       "price": 199,
+       "profitSplit": 90
+      }
+     ]
+    },
+    {
+     "name": "No Activation Fee · RTA On",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "50% (eval)",
+     "sizes": [
+      {
+       "size": "50K",
+       "price": 85,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 129,
+       "profitSplit": 90
+      },
+      {
+       "size": "150K",
+       "price": 199,
+       "profitSplit": 90
+      }
+     ]
+    },
+    {
+     "name": "No Activation Fee · RTA Off",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "50% (eval)",
+     "sizes": [
+      {
+       "size": "50K",
+       "price": 95,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 149,
+       "profitSplit": 90
+      },
+      {
+       "size": "150K",
+       "price": 229,
+       "profitSplit": 90
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "my-funded-futures",
+   "name": "My Funded Futures",
+   "country": "Canada",
+   "founded": 2023,
+   "maxAllocation": "$600K",
+   "promoCode": "TICKSHIFT",
+   "discountPct": 20,
+   "platforms": [
+    "tradovate",
+    "ninjatrader",
+    "tradingview"
+   ],
+   "payoutMethods": [
+    "rise",
+    "wise",
+    "plaid"
+   ],
+   "payoutFrequency": "Within 24 hours",
+   "tagline": "No-nonsense plans with payouts inside 24 hours.",
+   "description": "My Funded Futures keeps things simple: pick Starter for a forgiving end-of-day drawdown or Expert to skip the consistency rule entirely. Payouts process within 24 hours, and the first payout can be requested as soon as you clear five winning days.",
+   "tradingRules": {
+    "weekendHolding": "Not allowed",
+    "overnightHolding": "Allowed (funded)",
+    "hedging": "Not allowed",
+    "copyTrading": "Allowed (own accounts)",
+    "eas": "Allowed with restrictions"
+   },
+   "accountTypes": [
+    {
+     "name": "Rapid Plan",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "50% (eval only)",
+     "sizes": [
+      {
+       "size": "25K",
+       "price": 87.2,
+       "profitSplit": 90
+      },
+      {
+       "size": "50K",
+       "price": 125.6,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 213.6,
+       "profitSplit": 90
+      },
+      {
+       "size": "150K",
+       "price": 277.6,
+       "profitSplit": 90
+      }
+     ]
+    },
+    {
+     "name": "Builder Plan ($2K Max Loss)",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "50% (funded only)",
+     "sizes": [
+      {
+       "size": "50K",
+       "price": 153,
+       "profitSplit": 80
+      }
+     ]
+    },
+    {
+     "name": "Builder Plan ($1.5K Max Loss)",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "50% (funded only)",
+     "sizes": [
+      {
+       "size": "50K",
+       "price": 125,
+       "profitSplit": 80
+      }
+     ]
+    },
+    {
+     "name": "Pro Plan",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "50% (eval only)",
+     "sizes": [
+      {
+       "size": "50K",
+       "price": 227,
+       "profitSplit": 80
+      },
+      {
+       "size": "100K",
+       "price": 344,
+       "profitSplit": 80
+      },
+      {
+       "size": "150K",
+       "price": 477,
+       "profitSplit": 80
+      }
+     ]
+    },
+    {
+     "name": "Flex Plan",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "50% (eval only)",
+     "sizes": [
+      {
+       "size": "25K",
+       "price": 95,
+       "profitSplit": 80
+      },
+      {
+       "size": "50K",
+       "price": 153,
+       "profitSplit": 80
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "tradeday",
+   "name": "TradeDay",
+   "country": "United Kingdom",
+   "founded": 2020,
+   "maxAllocation": "$400K",
+   "promoCode": "",
+   "discountPct": 0,
+   "platforms": [
+    "ninjatrader",
+    "tradovate",
+    "tradingview",
+    "rithmic"
+   ],
+   "payoutMethods": [
+    "wise",
+    "plane"
+   ],
+   "payoutFrequency": "Daily (from day one)",
+   "tagline": "Run by veteran floor traders, with real trader development.",
+   "description": "TradeDay was founded by former CME floor traders and pairs funding with genuine education: daily live streams, journal reviews, and mentorship. QuickPay accounts pay out from day one with a $250 minimum — the split starts 50/50 on the first $4K of net profit, moves to 80/20 above it and 90/10 in Funded Live. Choose intraday or end-of-day trailing drawdown, with no activation fee and no funded consistency rule.",
+   "tradingRules": {
+    "weekendHolding": "Not allowed",
+    "overnightHolding": "Not allowed",
+    "hedging": "Not allowed",
+    "copyTrading": "Not allowed",
+    "eas": "Allowed with approval"
+   },
+   "accountTypes": [
+    {
+     "name": "QuickPay · Intraday",
+     "drawdownMode": "Intraday Trailing",
+     "newsTrading": "Not allowed",
+     "consistencyRule": "30% (eval only)",
+     "sizes": [
+      {
+       "size": "50K",
+       "price": 62,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 115,
+       "profitSplit": 90
+      },
+      {
+       "size": "150K",
+       "price": 175,
+       "profitSplit": 90
+      }
+     ]
+    },
+    {
+     "name": "QuickPay · End of Day",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Not allowed",
+     "consistencyRule": "30% (eval only)",
+     "sizes": [
+      {
+       "size": "50K",
+       "price": 87,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 142,
+       "profitSplit": 90
+      },
+      {
+       "size": "150K",
+       "price": 197,
+       "profitSplit": 90
+      }
+     ]
+    },
+    {
+     "name": "FastPass · End of Day",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Not allowed",
+     "consistencyRule": "45% (eval only)",
+     "sizes": [
+      {
+       "size": "50K",
+       "price": 90,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 160,
+       "profitSplit": 90
+      },
+      {
+       "size": "150K",
+       "price": 240,
+       "profitSplit": 90
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "fxify",
+   "name": "FXIFY",
+   "country": "United Kingdom",
+   "founded": 2023,
+   "maxAllocation": "$400K",
+   "promoCode": "TICKSHIFT",
+   "discountPct": 30,
+   "platforms": [
+    "mt4",
+    "mt5",
+    "dxtrade"
+   ],
+   "payoutMethods": [
+    "rise",
+    "wise"
+   ],
+   "payoutFrequency": "On demand",
+   "tagline": "Broker-backed forex funding up to $400K with on-demand payouts.",
+   "description": "FXIFY is a broker-backed forex prop firm funding traders up to $400K. Pick the One Phase evaluation for speed (10% target, 50:1 leverage, refundable fee) or the Two Phase route for a beginner-friendly static drawdown and up to a 100% profit split. Three Phase, Two Phase Pro, Instant Funding and Lightning programs round out the lineup, with evaluation fees reimbursed on your first payout.",
+   "tradingRules": {
+    "weekendHolding": "Allowed",
+    "overnightHolding": "Allowed",
+    "hedging": "Allowed",
+    "copyTrading": "Allowed (own accounts)",
+    "eas": "Allowed"
+   },
+   "accountTypes": [
+    {
+     "name": "One Phase (50:1)",
+     "drawdownMode": "Intraday Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "None",
+     "sizes": [
+      {
+       "size": "5K",
+       "price": 41.3,
+       "profitSplit": 90
+      },
+      {
+       "size": "10K",
+       "price": 62.3,
+       "profitSplit": 90
+      },
+      {
+       "size": "15K",
+       "price": 83.3,
+       "profitSplit": 90
+      },
+      {
+       "size": "25K",
+       "price": 139.3,
+       "profitSplit": 90
+      },
+      {
+       "size": "50K",
+       "price": 265.3,
+       "profitSplit": 90
+      }
+     ]
+    },
+    {
+     "name": "Two Phase Classic (30:1)",
+     "drawdownMode": "Static",
+     "newsTrading": "Allowed",
+     "consistencyRule": "None",
+     "sizes": [
+      {
+       "size": "5K",
+       "price": 41.3,
+       "profitSplit": 100
+      },
+      {
+       "size": "10K",
+       "price": 62.3,
+       "profitSplit": 100
+      },
+      {
+       "size": "15K",
+       "price": 83.3,
+       "profitSplit": 100
+      },
+      {
+       "size": "25K",
+       "price": 139.3,
+       "profitSplit": 100
+      },
+      {
+       "size": "50K",
+       "price": 265.3,
+       "profitSplit": 100
+      }
+     ]
+    },
+    {
+     "name": "Three Phase",
+     "drawdownMode": "Static",
+     "newsTrading": "Allowed",
+     "consistencyRule": "None",
+     "sizes": [
+      {
+       "size": "5K",
+       "price": 27.3,
+       "profitSplit": 90
+      },
+      {
+       "size": "10K",
+       "price": 41.3,
+       "profitSplit": 90
+      },
+      {
+       "size": "15K",
+       "price": 55.3,
+       "profitSplit": 90
+      },
+      {
+       "size": "25K",
+       "price": 104.3,
+       "profitSplit": 90
+      },
+      {
+       "size": "50K",
+       "price": 174.3,
+       "profitSplit": 90
+      }
+     ]
+    },
+    {
+     "name": "Two Phase Pro",
+     "drawdownMode": "Static",
+     "newsTrading": "Allowed",
+     "consistencyRule": "None",
+     "sizes": [
+      {
+       "size": "10K",
+       "price": 90.3,
+       "profitSplit": 100
+      },
+      {
+       "size": "25K",
+       "price": 157.5,
+       "profitSplit": 100
+      },
+      {
+       "size": "50K",
+       "price": 262.5,
+       "profitSplit": 100
+      }
+     ]
+    },
+    {
+     "name": "Instant Funding",
+     "drawdownMode": "Intraday Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "None",
+     "sizes": [
+      {
+       "size": "5K",
+       "price": 160.3,
+       "profitSplit": 80
+      },
+      {
+       "size": "10K",
+       "price": 314.3,
+       "profitSplit": 80
+      },
+      {
+       "size": "25K",
+       "price": 629.3,
+       "profitSplit": 80
+      },
+      {
+       "size": "50K",
+       "price": 1224.3,
+       "profitSplit": 80
+      },
+      {
+       "size": "75K",
+       "price": 1749.3,
+       "profitSplit": 80
+      }
+     ]
+    },
+    {
+     "name": "Lightning Challenge (30:1)",
+     "drawdownMode": "Intraday Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "30%",
+     "sizes": [
+      {
+       "size": "10K",
+       "price": 41.3,
+       "profitSplit": 90
+      },
+      {
+       "size": "25K",
+       "price": 83.3,
+       "profitSplit": 90
+      },
+      {
+       "size": "50K",
+       "price": 146.3,
+       "profitSplit": 90
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "fundednext",
+   "name": "FundedNext",
+   "country": "United Arab Emirates",
+   "founded": 2022,
+   "maxAllocation": "$300K",
+   "promoCode": "REFICOFAR",
+   "discountPct": 30,
+   "platforms": [
+    "mt4",
+    "mt5",
+    "tradovate"
+   ],
+   "payoutMethods": [
+    "rise",
+    "wise"
+   ],
+   "payoutFrequency": "Bi-weekly",
+   "tagline": "Stellar challenges with a 15% reward while you're still in the evaluation.",
+   "description": "FundedNext pays a 15% performance reward on challenge-phase profits — you earn before you're even funded. The Stellar 2-Step uses static drawdown (5% daily, 10% max), allows news trading, and refunds your fee with the first reward. Stellar 1-Step, Stellar Lite and Stellar Instant variants are also available, alongside a separate futures arm.",
+   "tradingRules": {
+    "weekendHolding": "Allowed",
+    "overnightHolding": "Allowed",
+    "hedging": "Allowed",
+    "copyTrading": "Allowed (own accounts)",
+    "eas": "Allowed with restrictions"
+   },
+   "accountTypes": [
+    {
+     "name": "Stellar 2-Step (CFDs)",
+     "drawdownMode": "Static",
+     "newsTrading": "Allowed",
+     "consistencyRule": "None",
+     "sizes": [
+      {
+       "size": "6K",
+       "price": 44.99,
+       "profitSplit": 90
+      },
+      {
+       "size": "15K",
+       "price": 89.99,
+       "profitSplit": 90
+      },
+      {
+       "size": "25K",
+       "price": 149.99,
+       "profitSplit": 90
+      },
+      {
+       "size": "50K",
+       "price": 224.99,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 549.99,
+       "profitSplit": 90
+      },
+      {
+       "size": "200K",
+       "price": 1099.99,
+       "profitSplit": 90
+      }
+     ]
+    },
+    {
+     "name": "Stellar 1-Step (CFDs)",
+     "drawdownMode": "Static",
+     "newsTrading": "Allowed",
+     "consistencyRule": "None",
+     "sizes": [
+      {
+       "size": "6K",
+       "price": 49.49,
+       "profitSplit": 90
+      },
+      {
+       "size": "15K",
+       "price": 97.49,
+       "profitSplit": 90
+      },
+      {
+       "size": "25K",
+       "price": 164.99,
+       "profitSplit": 90
+      },
+      {
+       "size": "50K",
+       "price": 247.49,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 569.99,
+       "profitSplit": 90
+      },
+      {
+       "size": "200K",
+       "price": 1099.99,
+       "profitSplit": 90
+      }
+     ]
+    },
+    {
+     "name": "Stellar Lite (CFDs)",
+     "drawdownMode": "Static",
+     "newsTrading": "Allowed",
+     "consistencyRule": "None",
+     "sizes": [
+      {
+       "size": "5K",
+       "price": 24.74,
+       "profitSplit": 90
+      },
+      {
+       "size": "10K",
+       "price": 44.99,
+       "profitSplit": 90
+      },
+      {
+       "size": "25K",
+       "price": 104.99,
+       "profitSplit": 90
+      },
+      {
+       "size": "50K",
+       "price": 172.49,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 399.99,
+       "profitSplit": 90
+      },
+      {
+       "size": "200K",
+       "price": 798.99,
+       "profitSplit": 90
+      }
+     ]
+    },
+    {
+     "name": "Stellar Instant (CFDs)",
+     "drawdownMode": "Intraday Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "None",
+     "sizes": [
+      {
+       "size": "2K",
+       "price": 44.99,
+       "profitSplit": 90
+      },
+      {
+       "size": "5K",
+       "price": 112.49,
+       "profitSplit": 90
+      },
+      {
+       "size": "10K",
+       "price": 224.99,
+       "profitSplit": 90
+      },
+      {
+       "size": "20K",
+       "price": 449.99,
+       "profitSplit": 90
+      }
+     ]
+    },
+    {
+     "name": "Futures Flex (Tradovate)",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "40%",
+     "sizes": [
+      {
+       "size": "50K",
+       "price": 69.99,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 129.99,
+       "profitSplit": 90
+      },
+      {
+       "size": "150K",
+       "price": 249.99,
+       "profitSplit": 90
+      }
+     ]
+    },
+    {
+     "name": "Futures Rapid (Tradovate)",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "None",
+     "sizes": [
+      {
+       "size": "25K",
+       "price": 79,
+       "profitSplit": 90
+      },
+      {
+       "size": "50K",
+       "price": 129,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 279,
+       "profitSplit": 90
+      }
+     ]
+    },
+    {
+     "name": "Futures Bolt (Tradovate)",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "40%",
+     "sizes": [
+      {
+       "size": "50K",
+       "price": 99.99,
+       "profitSplit": 90
+      }
+     ]
+    },
+    {
+     "name": "Futures Legacy (Tradovate)",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "40%",
+     "sizes": [
+      {
+       "size": "25K",
+       "price": 79.99,
+       "profitSplit": 90
+      },
+      {
+       "size": "50K",
+       "price": 199.99,
+       "profitSplit": 90
+      },
+      {
+       "size": "100K",
+       "price": 239.99,
+       "profitSplit": 90
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "funding-predicts",
+   "name": "Funding Predicts",
+   "country": "United States",
+   "founded": 2026,
+   "maxAllocation": "$150K",
+   "promoCode": "TICKSHIFT",
+   "discountPct": 30,
+   "platforms": [
+    "polymarket"
+   ],
+   "payoutMethods": [
+    "rise"
+   ],
+   "payoutFrequency": "Every 7 days (crypto or fiat)",
+   "tagline": "The first prop firm for Polymarket prediction-market traders.",
+   "description": "Funding Predicts is the first proprietary trading firm built exclusively around Polymarket prediction markets, backed by an equity investment from My Funded Futures. Traders pass a single-phase simulated evaluation — hitting the profit target inside a Trailing EOD drawdown and a daily loss limit — then trade funded accounts routed through the live Polymarket order book across 1,200+ markets refreshed daily. The base profit split is 80% (up to 90% once funded) with payouts every 7 days, settled in crypto or fiat.",
+   "tradingRules": {
+    "weekendHolding": "Allowed — event markets run around the clock",
+    "overnightHolding": "Allowed",
+    "hedging": "Not specified",
+    "copyTrading": "Not allowed",
+    "eas": "Not specified"
+   },
+   "accountTypes": [
+    {
+     "name": "1-Step Challenge",
+     "drawdownMode": "EOD Trailing",
+     "newsTrading": "Allowed",
+     "consistencyRule": "Applies (unspecified)",
+     "sizes": [
+      {
+       "size": "10K",
+       "price": 59.5,
+       "profitSplit": 80
+      },
+      {
+       "size": "25K",
+       "price": 108.5,
+       "profitSplit": 80
+      },
+      {
+       "size": "50K",
+       "price": 182,
+       "profitSplit": 80
+      },
+      {
+       "size": "100K",
+       "price": 315,
+       "profitSplit": 80
+      },
+      {
+       "size": "150K",
+       "price": 465.5,
+       "profitSplit": 80
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "tiers": {
+  "lucid-trading": "S",
+  "tradeify": "S",
+  "my-funded-futures": "S",
+  "funding-predicts": "S",
+  "apex-trader-funding": "A",
+  "topstep": "A",
+  "take-profit-trader": "B",
+  "fundednext": "B",
+  "fxify": "B",
+  "tradeday": "C",
+  "alpha-futures": "D"
+ },
+ "warnings": {
+  "alpha-futures": "https://x.com/PropFirmMatch/status/2076609939905065422"
+ },
+ "platformLabels": {
+  "polymarket": "Polymarket",
+  "ninjatrader": "NinjaTrader",
+  "tradovate": "Tradovate",
+  "tradingview": "TradingView",
+  "rithmic": "Rithmic",
+  "wealthcharts": "WealthCharts",
+  "mt4": "MetaTrader 4",
+  "mt5": "MetaTrader 5",
+  "dxtrade": "DXtrade"
+ },
+ "payoutLabels": {
+  "rise": "Rise",
+  "plane": "Plane",
+  "plaid": "Plaid",
+  "wise": "Wise"
+ }
+}
