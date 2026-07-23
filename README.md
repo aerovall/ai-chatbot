@@ -183,7 +183,7 @@ just tag the bot and ask naturally.
 | `DATABASE_URL` | ✅ | — | PostgreSQL connection string. |
 | `PROPFIRMMATCH_BASE_URL` | — | `https://propfirmmatch.com/` | Base URL used internally for firm validation. |
 | `ANTHROPIC_MODEL` | — | `claude-sonnet-5` | Claude model used for answers. |
-| `ANTHROPIC_MAX_TOKENS` | — | `1024` | Max tokens per Claude response. |
+| `ANTHROPIC_MAX_TOKENS` | — | `700` | Max tokens per Claude response. |
 | `COMMAND_PREFIX` | — | `!` | Command prefix. |
 | `SCRAPE_MIN_INTERVAL` | — | `2.0` | Minimum seconds between scraping requests. |
 | `SEARCH_REFRESH_DAYS` | — | `30` | Days before a cached firm search is refreshed. |
@@ -203,6 +203,7 @@ just tag the bot and ask naturally.
 | `FUTURES_ONLY` | — | `true` | Serve/discuss only futures firms; hide forex/CFD & prediction firms (data retained). |
 | `FAQ_ENABLED` | — | `true` | Retrieve official help-center FAQ excerpts into context per question. |
 | `FAQ_MAX_CHARS` | — | `20000` | Character budget for FAQ excerpts per question. |
+| `PROMPT_CACHE_TTL` | — | `1h` | Prompt-cache TTL for the stable prefix: `1h` or `5m`. |
 | `INCLUDED_FIRMS` | — | `FXIFY` | Non-futures firms to keep listed (forex/CFD specifics stripped) in futures-only mode. |
 | `LOG_LEVEL` | — | `INFO` | Logging verbosity. |
 | `LOG_FILE` | — | `logs/bot.log` | Log file path. |

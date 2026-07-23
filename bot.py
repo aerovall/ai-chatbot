@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-import json
 import logging
 import re
 import sys
@@ -376,50 +375,6 @@ class TickShiftBot(commands.Bot):
             block.text for block in response.content if block.type == "text"
         ).strip()
 
-    async def extract_firm_names(self, question: str) -> Tuple[List[str], bool]:
-        """Use Claude to extract prop firm names mentioned in a question.
-
-        Args:
-            question: The user's free-text question.
-
-        Returns:
-            A tuple ``(firm_names, ambiguous)`` where ``firm_names`` is a list of
-            explicitly named firms and ``ambiguous`` indicates the question
-            references a firm without naming it (e.g. "that firm").
-        """
-        extraction_system = (
-            "You extract proprietary trading firm names from a user's question. "
-            "Respond with ONLY a compact JSON object of the form "
-            '{"firms": ["Name1", "Name2"], "ambiguous": false}. '
-            '"firms" lists the specific prop firm names explicitly mentioned '
-            "(empty if none). Set \"ambiguous\" to true only if the user clearly "
-            "refers to a specific firm without naming it (e.g. 'that firm'). "
-            "Do not include generic words. Output JSON only, no prose."
-        )
-        try:
-            raw = await self.ask_claude(extraction_system, question)
-            return self._parse_extraction(raw)
-        except Exception:  # noqa: BLE001 - extraction is best-effort.
-            self.log.exception("Firm name extraction failed; assuming none.")
-            return [], False
-
-    @staticmethod
-    def _parse_extraction(raw: str) -> Tuple[List[str], bool]:
-        """Parse the JSON returned by the extraction prompt defensively."""
-        match = re.search(r"\{.*\}", raw, re.DOTALL)
-        if not match:
-            return [], False
-        try:
-            data = json.loads(match.group(0))
-        except json.JSONDecodeError:
-            return [], False
-        firms = data.get("firms", []) or []
-        if not isinstance(firms, list):
-            firms = []
-        cleaned = [str(f).strip() for f in firms if str(f).strip()]
-        ambiguous = bool(data.get("ambiguous", False))
-        return cleaned, ambiguous
-
     # -- knowledge base helpers -------------------------------------------
 
     async def build_prompt(
@@ -460,11 +415,17 @@ class TickShiftBot(commands.Bot):
             firms, promos, extra_instructions, help_centers
         )
 
+        # Prompt-cache marker: default 1-hour TTL keeps the prefix warm on
+        # quiet servers (write costs 2x once, then reads at ~0.1x all hour);
+        # busy servers with steady traffic can set PROMPT_CACHE_TTL=5m.
+        cache_marker: Dict[str, str] = {"type": "ephemeral"}
+        if self.config.prompt_cache_ttl == "1h":
+            cache_marker["ttl"] = "1h"
         system: List[Dict[str, object]] = [
             {
                 "type": "text",
                 "text": stable,
-                "cache_control": {"type": "ephemeral"},
+                "cache_control": cache_marker,
             }
         ]
 
@@ -723,25 +684,10 @@ def register_commands(bot: TickShiftBot) -> None:
                                 await send_chunked(ctx, hit)
                                 return
 
-                firm_names, ambiguous = await bot.extract_firm_names(question)
-
-                # If a firm is referenced but not named, ask for clarification.
-                if ambiguous and not firm_names:
-                    await ctx.send(
-                        "Which prop firm are you asking about? "
-                        "Let me know the name and I'll take a look."
-                    )
-                    return
-
-                # Validate any explicitly named firms before answering.
-                if firm_names:
-                    all_valid, message = await bot.validate_firms(firm_names)
-                    if not all_valid:
-                        await ctx.send(message)
-                        return
-
-                # Rebuild the prompt (validation may have ingested new firms),
-                # retrieving official-FAQ excerpts relevant to this question.
+                # Firm mentions are handled locally: known firms/aliases drive
+                # FAQ retrieval inside build_prompt, and the prompt rules make
+                # the model decline unknown firms and clarify vague questions —
+                # no separate Claude extraction call needed.
                 bundle = await bot.build_prompt(question=question)
                 answer = await bot.ask_claude(
                     bundle.system, wrap_user_question(question)
