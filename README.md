@@ -37,6 +37,17 @@ Additional capabilities:
   differently-worded questions that mean the same thing (e.g. "fastest payouts"
   ≈ "quickest withdrawals") using embeddings, further reducing Claude calls.
   Falls back to exact-match caching if no key is configured.
+- **FAQ-first answering** — a bundled knowledge base of official help-center
+  FAQ content (`data/faq_knowledge_base.json`; currently deep coverage for
+  Tradeify, Take Profit Trader and Apex Trader Funding, plus general prop-firm
+  concepts) is searched per question with keyword retrieval (`faq.py`); only
+  the relevant excerpts are injected into Claude's context. Answers cite the
+  official source URL when available, never invent details, and point users to
+  each firm's official help center for anything not covered.
+- **Anthropic prompt caching** — the stable prompt prefix (instructions + firm
+  catalogue + help-center links) carries a `cache_control` marker, so repeat
+  requests read it at ~10% of the normal input-token price. The per-question
+  FAQ excerpts sit after the cache breakpoint and never invalidate it.
 - **Long-message handling** — responses are chunked to respect Discord's
   2000-character limit.
 - **Robust error handling & logging** — friendly Discord messages, full logs to
@@ -188,6 +199,8 @@ just tag the bot and ask naturally.
 | `ALLOWED_CHANNEL_IDS` | — | — | Comma-separated channel IDs the bot may respond in. Empty = all channels. |
 | `IGNORE_DMS` | — | `false` | If `true`, the bot ignores direct messages (servers only). |
 | `FUTURES_ONLY` | — | `true` | Serve/discuss only futures firms; hide forex/CFD & prediction firms (data retained). |
+| `FAQ_ENABLED` | — | `true` | Retrieve official help-center FAQ excerpts into context per question. |
+| `FAQ_MAX_CHARS` | — | `20000` | Character budget for FAQ excerpts per question. |
 | `INCLUDED_FIRMS` | — | `FXIFY` | Non-futures firms to keep listed (forex/CFD specifics stripped) in futures-only mode. |
 | `LOG_LEVEL` | — | `INFO` | Logging verbosity. |
 | `LOG_FILE` | — | `logs/bot.log` | Log file path. |

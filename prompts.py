@@ -35,6 +35,24 @@ assume, generalise, or add outside knowledge about funded rules (e.g. do not say
 "most firms require consistency once funded") — if the phase isn't specified in \
 the data, say it isn't specified. Apply the same precision to activation fees, \
 reset fees and payouts: state only what the data says.
+
+FAQ answering rules:
+- Some requests include an "OFFICIAL FAQ EXCERPTS" section with content from \
+firms' official help centers. Treat it as the most authoritative source for the \
+firms it covers — prefer it over the knowledge-base summary when they conflict, \
+and prefer answering directly from it.
+- When an excerpt lists a source URL (a "Sources:" line or help-center link) \
+that backs your answer, end the answer with "Source: <url>" so users can verify.
+- Never invent details. If neither the knowledge base nor the FAQ excerpts \
+cover what was asked, say you don't have that detail and point the user to the \
+firm's official help center (listed below when available).
+- If a question is too broad to answer well (e.g. "which firm is best?"), ask \
+one short clarifying question about their priorities (cost, payout speed, \
+rules, account size) instead of guessing.
+- Do not give financial advice. For "what should I do with $X"-style strategy \
+questions, share factual comparisons, add a brief note that this is information \
+only and trading futures involves substantial risk of loss, and encourage users \
+to verify current details with the firm before purchasing.
 - Never mention how firm data was sourced, validated or collected. Never \
 reference internal tools, databases, websites or validation processes. Simply \
 present the information as your own knowledge.
@@ -177,10 +195,31 @@ def format_firm_block(firm: Dict[str, object]) -> str:
     return "\n".join(lines)
 
 
+def build_faq_block(excerpts: str) -> str:
+    """Wrap retrieved FAQ excerpts in a clearly-labelled prompt section.
+
+    Args:
+        excerpts: Concatenated FAQ chunks relevant to the current question.
+
+    Returns:
+        A labelled block to append to the system prompt (after the cached
+        stable prefix, so varying excerpts never invalidate the prompt cache).
+    """
+    return (
+        "=" * 60
+        + "\nOFFICIAL FAQ EXCERPTS (from firms' official help centers — most "
+        "authoritative source for the firms covered)\n"
+        + "=" * 60
+        + "\n\n"
+        + excerpts.strip()
+    )
+
+
 def build_system_prompt(
     firms: List[Dict[str, object]],
     promo_codes: Optional[List[Dict[str, object]]] = None,
     extra_instructions: Optional[str] = None,
+    help_centers: Optional[str] = None,
 ) -> str:
     """Build the full dynamic system prompt from current database state.
 
@@ -189,6 +228,8 @@ def build_system_prompt(
         promo_codes: Optional pre-fetched active promo codes with ``firm_name``.
         extra_instructions: Optional task-specific instructions (e.g. for the
             compare command) appended after the base guidelines.
+        help_centers: Optional newline-separated official help-center links for
+            the visible firms (stable content — safe for the cached prefix).
 
     Returns:
         A complete system prompt string to pass to Claude.
@@ -197,6 +238,12 @@ def build_system_prompt(
 
     if extra_instructions:
         sections.append(extra_instructions.strip())
+
+    if help_centers:
+        sections.append(
+            "Official help centers (direct users here for details not in your "
+            "data):\n" + help_centers.strip()
+        )
 
     sections.append("=" * 60)
     sections.append("KNOWLEDGE BASE (current as of this request)")

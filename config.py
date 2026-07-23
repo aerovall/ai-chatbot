@@ -137,6 +137,8 @@ class Config:
     ignore_dms: bool = False
     futures_only: bool = True
     included_firm_names: frozenset = frozenset()
+    faq_enabled: bool = True
+    faq_max_chars: int = 20_000
     log_level: str = "INFO"
     log_file: str = "logs/bot.log"
 
@@ -203,6 +205,8 @@ class Config:
             ignore_dms=_get_bool("IGNORE_DMS", False),
             futures_only=_get_bool("FUTURES_ONLY", True),
             included_firm_names=_get_name_set("INCLUDED_FIRMS", "FXIFY"),
+            faq_enabled=_get_bool("FAQ_ENABLED", True),
+            faq_max_chars=_get_int("FAQ_MAX_CHARS", 20_000),
             log_level=os.getenv("LOG_LEVEL", "INFO").strip().upper() or "INFO",
             log_file=os.getenv("LOG_FILE", "logs/bot.log").strip() or "logs/bot.log",
         )
