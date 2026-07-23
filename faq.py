@@ -6,11 +6,12 @@ lightweight keyword matching, and only the chunks relevant to the user's
 question are injected into Claude's context. This keeps answers grounded in
 official documentation while spending tokens only on what each question needs.
 
-The knowledge base carries deep coverage for Tradeify, Take Profit Trader and
-Apex Trader Funding, summary FAQ coverage for Lucid Trading, Topstep, My Funded
-Futures, FundedNext and TradeDay, plus general prop-firm concepts, a quick
-reference, and official help-center links for every firm. Additional firms can
-be appended to the JSON without code changes.
+The knowledge base covers all nine futures firms — deep coverage for Tradeify,
+Take Profit Trader and Apex Trader Funding; summary FAQ coverage for Lucid
+Trading, Topstep, My Funded Futures, FundedNext, TradeDay and Alpha Futures —
+plus general prop-firm concepts, a quick reference, and official help-center
+links for every firm. Additional content can be appended to the JSON without
+code changes.
 
 Retrieval respects the bot's visibility rules: sections and chunks tied to
 hidden firms (non-futures firms outside the include list) are never selected.
@@ -51,6 +52,9 @@ FIRM_ALIASES: Dict[str, str] = {
     "tradeday": "tradeday",
     "trade day": "tradeday",
     "traded day": "tradeday",
+    "alpha futures": "alpha-futures",
+    "alphafutures": "alpha-futures",
+    "alpha": "alpha-futures",
 }
 
 # Official help centers for every firm (shown when the KB lacks deep coverage).
