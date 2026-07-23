@@ -155,6 +155,7 @@ tickshift-discord-bot/
 | `COMMAND_PREFIX` | — | `!` | Command prefix. |
 | `SCRAPE_MIN_INTERVAL` | — | `2.0` | Minimum seconds between scraping requests. |
 | `SEARCH_REFRESH_DAYS` | — | `30` | Days before a cached firm search is refreshed. |
+| `SEED_ON_STARTUP` | — | `true` | Seed the curated TickShift firm catalogue (firms + promo codes) on startup. |
 | `LOG_LEVEL` | — | `INFO` | Logging verbosity. |
 | `LOG_FILE` | — | `logs/bot.log` | Log file path. |
 
@@ -187,6 +188,20 @@ Four tables are created automatically:
 
 Because the prompt is rebuilt on every request, updates to the database take
 effect immediately — no redeployment required.
+
+### Seed catalogue
+
+On startup the bot seeds a curated set of firms and their active promo codes
+from the [TickShift catalogue](https://www.tickshift.app/) (see `seed.py`), so
+commands like `!promo` and `!firm` return data immediately on a fresh database.
+Seeding is idempotent (upsert by firm name) and can be disabled with
+`SEED_ON_STARTUP=false`. You can also run it manually:
+
+```bash
+python seed.py
+```
+
+To adjust the catalogue or promo codes, edit `SEED_FIRMS` in `seed.py`.
 
 ---
 
