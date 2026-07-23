@@ -46,6 +46,57 @@ _FOREX_PLATFORM_KEYS = {"mt4", "mt5", "dxtrade"}
 INCLUDE_SLUGS = {"fxify"}
 
 
+def _describe_consistency(raw: Optional[str]) -> str:
+    """Render a consistency-rule value into an unambiguous phrase.
+
+    The source encodes the phase where known (e.g. ``"40% (funded)"`` vs
+    ``"40% (eval only)"`` vs ``"None"``). This makes that explicit so the model
+    never conflates evaluation consistency with funded-account consistency.
+    """
+    if not raw:
+        return "consistency rule not specified"
+    low = raw.lower().strip()
+    match = re.search(r"\d+%", raw)
+    pct = match.group(0) if match else None
+    if low == "none":
+        return "no consistency rule (neither evaluation nor funded)"
+    if "funded" in low:
+        return f"{pct or 'a'} consistency rule on funded accounts"
+    if "eval" in low:
+        return (
+            f"{pct or 'a'} consistency rule during the evaluation only "
+            "(no consistency rule once funded)"
+        )
+    if low == "required":
+        return "a consistency rule is required (percentage unspecified)"
+    if "applies" in low or "unspecified" in low:
+        return "a consistency rule applies (details unspecified)"
+    if pct:
+        return f"{pct} consistency rule (which phase it applies to is unspecified)"
+    return f"consistency rule: {raw}"
+
+
+def _describe_activation_fee(account_type: Dict[str, object]) -> Optional[str]:
+    """Summarise an account type's funded-account activation fee.
+
+    ``0`` means free/no activation fee; ``None``/absent means not specified.
+    """
+    fees = [
+        s.get("activationFee")
+        for s in account_type.get("sizes", [])
+        if s.get("activationFee") is not None
+    ]
+    if not fees:
+        return None
+    if all(f == 0 for f in fees):
+        return "no activation fee"
+    positive = [f for f in fees if f and f > 0]
+    if not positive:
+        return "no activation fee"
+    lo, hi = min(positive), max(positive)
+    return f"activation fee ${lo:g}" if lo == hi else f"activation fee ${lo:g}–${hi:g}"
+
+
 def _strip_market_words(text: Optional[str]) -> Optional[str]:
     """Remove forex/CFD wording from a short text, tidying whitespace."""
     if not text:
@@ -165,12 +216,16 @@ def _transform_firm(
             price_range = (
                 f"${min(at_prices):g}–${max(at_prices):g}" if at_prices else "n/a"
             )
-            rules.append(
-                f"Account '{at.get('name')}': {at.get('drawdownMode')} drawdown, "
-                f"news {at.get('newsTrading')}, "
-                f"consistency {at.get('consistencyRule')}, "
-                f"sizes {'/'.join(labels)} ({price_range})"
-            )
+            parts = [
+                f"Account '{at.get('name')}': {at.get('drawdownMode')} drawdown",
+                f"news {at.get('newsTrading')}",
+                _describe_consistency(at.get("consistencyRule")),
+            ]
+            activation = _describe_activation_fee(at)
+            if activation:
+                parts.append(activation)
+            parts.append(f"sizes {'/'.join(labels)} ({price_range})")
+            rules.append("; ".join(parts))
 
     # For forex-stripped firms, use a neutral (de-forexed) description.
     if forex_stripped:
