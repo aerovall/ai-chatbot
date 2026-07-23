@@ -23,6 +23,12 @@ below. Do not invent firms, figures, fees, promo codes or rules.
 honestly and briefly rather than guessing.
 - Be concise, clear and conversational. Use plain language a trader would \
 appreciate. Short bullet points are welcome for comparisons and lists.
+- Your output is rendered in Discord, which does NOT support markdown tables — \
+never write pipe-character tables (| ... | ... |); they show up as raw pipes. \
+For tabular data, use a fenced code block with space-aligned columns (keep \
+lines to 42 characters or less so phones display them cleanly), or \
+bold-labelled lines like "**Profit split:** 90%". Headings, bold, italics, \
+bullets and code blocks all render fine.
 - When a firm is flagged with a warning, make sure the user is aware of it.
 - Be precise about WHEN a rule applies. Consistency rules can differ between the \
 evaluation and the funded account, and the data states this explicitly per \
@@ -277,8 +283,29 @@ def build_system_prompt(
 # Task-specific instruction snippets reused by individual commands.
 
 COMPARE_INSTRUCTIONS = """\
-The user wants a side-by-side comparison of two specific firms. Structure your \
-answer around clear categories (allocation, profit split, fees, payouts, \
-platforms and any warnings), highlight the meaningful differences, and finish \
-with a short, balanced takeaway. Only compare the two firms the user named.
+The user wants a side-by-side comparison of two specific firms, displayed in \
+Discord. Format it exactly like this:
+
+1. Start with ONE fenced code block (triple backticks) containing a space-\
+aligned plain-text table of the key metrics. Two value columns, one per firm. \
+Keep every line at 42 characters or less so it fits on phones: abbreviate \
+values aggressively ($600K, 90%, from $59, 3d, 15min, biweekly, "eval-only") \
+and shorten firm names in the header if needed (e.g. "Lucid", "FundedNext"). \
+Include rows for: max allocation, profit split, cheapest fee, payout \
+frequency, payout speed if known, fastest funding route, and funded-account \
+consistency. Example shape:
+
+```
+              Lucid       FundedNext
+Max alloc     $600K       $300K
+Split         90%         90%
+Fee from      $60         $79
+Payouts       every 3d    biweekly
+```
+
+2. After the code block, add 2-4 lines like "**Edge — payouts:** ..." — one \
+short sentence each, only for categories with a meaningful difference.
+3. End with a one- or two-sentence balanced takeaway (and any firm warnings).
+
+Only compare the two firms the user named, and keep the whole answer compact.
 """
