@@ -99,10 +99,15 @@ class FirmValidator:
                 message=self.random_unrecognised_message(),
             )
 
-        # Step 1: already known locally and cache still fresh -> trust it.
+        # Step 1: already known locally -> trust it. The local database is the
+        # curated knowledge base (seeded catalogue + previously ingested
+        # firms), so it is authoritative; external validation exists only to
+        # gate firms we know nothing about. Re-validating known firms against
+        # the external source caused false "unrecognised" verdicts whenever
+        # that site could not be scraped.
         already_local = self._db.firm_exists(firm_name)
-        if already_local and self._db.is_cache_fresh(firm_name):
-            logger.debug("Firm '%s' served from local DB (fresh).", firm_name)
+        if already_local:
+            logger.debug("Firm '%s' served from local DB.", firm_name)
             return ValidationResult(
                 firm_name=firm_name, is_valid=True, in_database=True
             )

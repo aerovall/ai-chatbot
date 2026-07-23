@@ -35,7 +35,7 @@ from discord.ext import commands
 from config import Config, ConfigError, configure_logging
 from database import Database
 from embeddings import EmbeddingClient, cosine_similarity
-from faq import FAQKnowledgeBase
+from faq import FIRM_ALIASES, FAQKnowledgeBase
 from prompts import (
     COMPARE_INSTRUCTIONS,
     build_faq_block,
@@ -486,6 +486,54 @@ class TickShiftBot(commands.Bot):
         fingerprint = kb_fingerprint(f"{stable}|faq:{faq_version}")
         return PromptBundle(system=system, fingerprint=fingerprint)
 
+    async def resolve_firm_pair(self, raw: str) -> Optional[Tuple[str, str]]:
+        """Resolve two firm names from free text using known names and aliases.
+
+        Handles multi-word names without quotes (``my funded futures apex``),
+        common aliases/misspellings (``mff``, ``tpt``, ``funded next``) and any
+        separator (``vs``, comma, or just a space), by scanning the text for
+        known firm names instead of guessing where one name ends.
+
+        Args:
+            raw: The raw argument text after the compare command.
+
+        Returns:
+            The two firm display names in order of appearance, or ``None`` if
+            the text doesn't contain exactly two known firms.
+        """
+        low = raw.lower()
+        if not low.strip():
+            return None
+
+        # Known display names from the database (all firms, so hidden ones
+        # still resolve and get the proper "futures only" reply downstream)...
+        firms = await asyncio.to_thread(self.db.get_all_firms)
+        alias_map: Dict[str, str] = {
+            f["name"].lower(): str(f["name"]) for f in firms if f.get("name")
+        }
+        # ...plus the FAQ aliases (mff, tpt, funded next, ...) mapped to the
+        # section's display name.
+        if self.faq:
+            for alias, key in FIRM_ALIASES.items():
+                section = self.faq._sections.get(key)  # noqa: SLF001
+                if section and section.get("name"):
+                    alias_map.setdefault(alias, str(section["name"]))
+
+        # Find all alias occurrences; prefer longer aliases, dedupe by firm.
+        hits: List[Tuple[int, int, str]] = []
+        for alias, display in alias_map.items():
+            pos = low.find(alias)
+            if pos >= 0:
+                hits.append((pos, -len(alias), display))
+        hits.sort()
+        ordered: List[str] = []
+        for _, _, display in hits:
+            if display not in ordered:
+                ordered.append(display)
+        if len(ordered) == 2:
+            return ordered[0], ordered[1]
+        return None
+
     async def validate_firms(
         self, firm_names: List[str]
     ) -> Tuple[bool, Optional[str]]:
@@ -734,11 +782,17 @@ def register_commands(bot: TickShiftBot) -> None:
         if await rate_limited(ctx):
             return
 
-        firm1, firm2 = _parse_two_firms(firms)
+        # Prefer known-name/alias resolution (handles multi-word names without
+        # quotes, "mff", "tpt", misspellings); fall back to token splitting.
+        resolved = await bot.resolve_firm_pair(firms)
+        if resolved:
+            firm1, firm2 = resolved
+        else:
+            firm1, firm2 = _parse_two_firms(firms)
         if not firm1 or not firm2:
             await ctx.send(
                 f"Please name two firms to compare, e.g. "
-                f"`{bot.config.command_prefix}compare FTMO Tradeify`."
+                f"`{bot.config.command_prefix}compare Tradeify Topstep`."
             )
             return
 

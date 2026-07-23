@@ -336,6 +336,9 @@ def seed_database(
     for firm in firms:
         try:
             db.upsert_firm(firm)
+            # Mark catalogue firms as validated so no command ever re-checks
+            # them against the external validation source.
+            db.update_cache(str(firm.get("name")), True, "seeded")
             seeded += 1
         except Exception:  # noqa: BLE001 - one bad row shouldn't stop seeding.
             logger.exception("Failed to seed firm '%s'.", firm.get("name"))
