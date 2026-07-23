@@ -182,6 +182,36 @@ class FirmSearchCache(Base):
     search_status: Mapped[Optional[str]] = mapped_column(String(50))
 
 
+class QACache(Base):
+    """Caches Claude answers so repeat questions don't re-hit the API.
+
+    Each entry is keyed by a hash of the normalised question and stores the
+    fingerprint (``kb_version``) of the knowledge base that produced the answer.
+    A cached answer is only reused while that fingerprint still matches the
+    current knowledge base, so answers are automatically regenerated whenever the
+    underlying firm/promo data changes.
+    """
+
+    __tablename__ = "qa_cache"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    question_hash: Mapped[str] = mapped_column(
+        String(64), nullable=False, unique=True, index=True
+    )
+    question_text: Mapped[Optional[str]] = mapped_column(Text)
+    answer: Mapped[str] = mapped_column(Text, nullable=False)
+    kb_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    hit_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.current_timestamp()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        server_default=func.current_timestamp(),
+        onupdate=func.current_timestamp(),
+    )
+
+
 class Database:
     """Owns the SQLAlchemy engine and exposes high-level query helpers."""
 
@@ -450,3 +480,73 @@ class Database:
                 is_valid_firm,
                 search_status,
             )
+
+    # -- Q&A answer cache --------------------------------------------------
+
+    def get_cached_answer(
+        self, question_hash: str, kb_version: str, ttl_days: int = 0
+    ) -> Optional[str]:
+        """Return a cached answer if one matches the question and current KB.
+
+        Args:
+            question_hash: Hash of the normalised question.
+            kb_version: Fingerprint of the current knowledge base. A cached
+                answer is only returned when its stored fingerprint matches, so
+                stale answers (produced before a data change) are ignored.
+            ttl_days: Optional maximum age in days. ``0`` disables time-based
+                expiry and relies solely on the knowledge base fingerprint.
+
+        Returns:
+            The cached answer text, or ``None`` on a cache miss.
+        """
+        with self.session() as session:
+            entry = session.scalars(
+                select(QACache).where(QACache.question_hash == question_hash)
+            ).first()
+            if entry is None or entry.kb_version != kb_version:
+                return None
+
+            if ttl_days and ttl_days > 0:
+                created = entry.created_at
+                if created is not None:
+                    if created.tzinfo is None:
+                        created = created.replace(tzinfo=timezone.utc)
+                    cutoff = datetime.now(timezone.utc) - timedelta(days=ttl_days)
+                    if created < cutoff:
+                        return None
+
+            entry.hit_count = (entry.hit_count or 0) + 1
+            logger.info(
+                "Q&A cache hit (hits=%s) for question hash %s.",
+                entry.hit_count,
+                question_hash[:12],
+            )
+            return entry.answer
+
+    def store_cached_answer(
+        self,
+        question_hash: str,
+        question_text: str,
+        answer: str,
+        kb_version: str,
+    ) -> None:
+        """Insert or refresh a cached answer for a question.
+
+        Args:
+            question_hash: Hash of the normalised question.
+            question_text: The original question text (for readability/debugging).
+            answer: The answer to cache.
+            kb_version: Fingerprint of the knowledge base that produced it.
+        """
+        with self.session() as session:
+            entry = session.scalars(
+                select(QACache).where(QACache.question_hash == question_hash)
+            ).first()
+            if entry is None:
+                entry = QACache(question_hash=question_hash, hit_count=0)
+                session.add(entry)
+            entry.question_text = (question_text or "")[:2000]
+            entry.answer = answer
+            entry.kb_version = kb_version
+            entry.updated_at = datetime.now(timezone.utc)
+            logger.debug("Cached answer stored for hash %s.", question_hash[:12])

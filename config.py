@@ -89,6 +89,8 @@ class Config:
     scrape_min_interval: float = 2.0
     search_refresh_days: int = 30
     seed_on_startup: bool = True
+    qa_cache_enabled: bool = True
+    qa_cache_ttl_days: int = 0
     log_level: str = "INFO"
     log_file: str = "logs/bot.log"
 
@@ -140,6 +142,8 @@ class Config:
             scrape_min_interval=_get_float("SCRAPE_MIN_INTERVAL", 2.0),
             search_refresh_days=_get_int("SEARCH_REFRESH_DAYS", 30),
             seed_on_startup=_get_bool("SEED_ON_STARTUP", True),
+            qa_cache_enabled=_get_bool("QA_CACHE_ENABLED", True),
+            qa_cache_ttl_days=_get_int("QA_CACHE_TTL_DAYS", 0),
             log_level=os.getenv("LOG_LEVEL", "INFO").strip().upper() or "INFO",
             log_file=os.getenv("LOG_FILE", "logs/bot.log").strip() or "logs/bot.log",
         )
