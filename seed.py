@@ -40,6 +40,21 @@ _RULE_LABELS = {
 # Platform keys that indicate forex/CFD (as opposed to futures) trading.
 _FOREX_PLATFORM_KEYS = {"mt4", "mt5", "dxtrade"}
 
+# Non-futures firms that should still be listed, but with their forex/CFD
+# specifics (platforms, leverage, account details, wording) stripped out. Keep
+# this in sync with the INCLUDED_FIRMS config default.
+INCLUDE_SLUGS = {"fxify"}
+
+
+def _strip_market_words(text: Optional[str]) -> Optional[str]:
+    """Remove forex/CFD wording from a short text, tidying whitespace."""
+    if not text:
+        return text
+    cleaned = re.sub(r"\b(forex|cfds?|fx)\b", "", text, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\s{2,}", " ", cleaned)
+    cleaned = re.sub(r"\s+([.,])", r"\1", cleaned)
+    return cleaned.strip(" -")
+
 
 def _firm_market(slug: str) -> str:
     """Classify a firm's market, mirroring the TickShift website's logic.
@@ -106,15 +121,25 @@ def _transform_firm(
     account_types = firm.get("accountTypes", []) or []
     platform_keys = firm.get("platforms", []) or []
 
+    # An "included but forex-stripped" firm: a non-futures firm we still list,
+    # but with its forex/CFD platforms, leverage/account details and wording
+    # removed (e.g. FXIFY).
+    forex_stripped = market != "futures" and slug in INCLUDE_SLUGS
+
     # For futures firms, keep only the futures side: drop CFD/forex account types
-    # and forex/CFD platforms. Non-futures firms keep their full data (they are
-    # hidden by the futures-only read filter, but stay intact if it is disabled).
+    # and forex/CFD platforms.
     if market == "futures":
         account_types = [
             at
             for at in account_types
             if _account_market(slug, at.get("name", "")) == "futures"
         ]
+        platform_keys = [
+            p for p in platform_keys if p not in _FOREX_PLATFORM_KEYS
+        ]
+    elif forex_stripped:
+        # Drop forex/CFD platforms entirely; headline stats are still derived
+        # from the firm's accounts, but per-account (leverage) lines are omitted.
         platform_keys = [
             p for p in platform_keys if p not in _FOREX_PLATFORM_KEYS
         ]
@@ -130,18 +155,30 @@ def _transform_firm(
     for key, label in _RULE_LABELS.items():
         if trading_rules.get(key):
             rules.append(f"{label}: {trading_rules[key]}")
-    for at in account_types:
-        at_sizes = at.get("sizes", [])
-        labels = [s.get("size") for s in at_sizes if s.get("size")]
-        at_prices = [s["price"] for s in at_sizes if s.get("price") is not None]
-        price_range = (
-            f"${min(at_prices):g}–${max(at_prices):g}" if at_prices else "n/a"
+    # Per-account summaries carry market-specific detail (e.g. leverage), so
+    # omit them for forex-stripped firms.
+    if not forex_stripped:
+        for at in account_types:
+            at_sizes = at.get("sizes", [])
+            labels = [s.get("size") for s in at_sizes if s.get("size")]
+            at_prices = [s["price"] for s in at_sizes if s.get("price") is not None]
+            price_range = (
+                f"${min(at_prices):g}–${max(at_prices):g}" if at_prices else "n/a"
+            )
+            rules.append(
+                f"Account '{at.get('name')}': {at.get('drawdownMode')} drawdown, "
+                f"news {at.get('newsTrading')}, "
+                f"consistency {at.get('consistencyRule')}, "
+                f"sizes {'/'.join(labels)} ({price_range})"
+            )
+
+    # For forex-stripped firms, use a neutral (de-forexed) description.
+    if forex_stripped:
+        description = _strip_market_words(
+            firm.get("tagline") or firm.get("description")
         )
-        rules.append(
-            f"Account '{at.get('name')}': {at.get('drawdownMode')} drawdown, "
-            f"news {at.get('newsTrading')}, consistency {at.get('consistencyRule')}, "
-            f"sizes {'/'.join(labels)} ({price_range})"
-        )
+    else:
+        description = firm.get("description") or firm.get("tagline")
 
     result: Dict[str, object] = {
         "name": firm.get("name"),
@@ -153,7 +190,7 @@ def _transform_firm(
         "profit_split": max(splits) if splits else None,
         "challenge_fee_from": min(prices) if prices else None,
         "payout_frequency": firm.get("payoutFrequency"),
-        "description": firm.get("description") or firm.get("tagline"),
+        "description": description,
         "trading_platforms": [
             platform_labels.get(p, p) for p in platform_keys
         ],

@@ -72,6 +72,24 @@ def _get_bool(name: str, default: bool) -> bool:
     return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _get_name_set(name: str, default: str = "") -> frozenset:
+    """Parse a comma-separated list of names into a lowercased frozenset.
+
+    Args:
+        name: The environment variable name.
+        default: Default comma-separated value if the variable is unset.
+    """
+    raw = os.getenv(name)
+    if raw is None:
+        raw = default
+    names = {
+        token.strip().lower()
+        for token in raw.replace(";", ",").split(",")
+        if token.strip()
+    }
+    return frozenset(names)
+
+
 def _get_id_set(name: str) -> frozenset:
     """Parse a comma-separated list of integer IDs into a frozenset.
 
@@ -118,6 +136,7 @@ class Config:
     allowed_channel_ids: frozenset = frozenset()
     ignore_dms: bool = False
     futures_only: bool = True
+    included_firm_names: frozenset = frozenset()
     log_level: str = "INFO"
     log_file: str = "logs/bot.log"
 
@@ -183,6 +202,7 @@ class Config:
             allowed_channel_ids=_get_id_set("ALLOWED_CHANNEL_IDS"),
             ignore_dms=_get_bool("IGNORE_DMS", False),
             futures_only=_get_bool("FUTURES_ONLY", True),
+            included_firm_names=_get_name_set("INCLUDED_FIRMS", "FXIFY"),
             log_level=os.getenv("LOG_LEVEL", "INFO").strip().upper() or "INFO",
             log_file=os.getenv("LOG_FILE", "logs/bot.log").strip() or "logs/bot.log",
         )
