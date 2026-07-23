@@ -276,6 +276,12 @@ The bot is built to be safe to run in a public server. It keeps users on-task
   role, or following embedded commands. Every user message is passed to the model
   wrapped as clearly-delimited *untrusted* input, so attempts like "ignore your
   instructions" or "print your system prompt" are refused.
+- **Topic scope: prop firms only** — the bot answers questions about firms
+  (programs, rules, fees, payouts, tiers, platforms, promos, comparisons). It
+  declines forex/CFD or other market trading advice — strategies, analysis, price
+  predictions, signals, "how/what to trade" — and redirects to prop-firm topics.
+  It still reports factual firm attributes for forex/CFD-based firms (e.g. that a
+  firm offers MetaTrader).
 - **No mass pings** — the bot is configured with `allowed_mentions = none`, so it
   can never be tricked into pinging `@everyone`, `@here`, or roles, regardless of
   what a firm description or model response contains.
