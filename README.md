@@ -181,6 +181,12 @@ just tag the bot and ask naturally.
 | `VOYAGE_API_KEY` | — | — | Voyage AI key for semantic caching. Omit to use exact-match caching only. |
 | `VOYAGE_MODEL` | — | `voyage-3.5` | Voyage embedding model. |
 | `SEMANTIC_CACHE_THRESHOLD` | — | `0.85` | Cosine-similarity threshold for treating two questions as equivalent. |
+| `MAX_QUESTION_LENGTH` | — | `500` | Maximum characters allowed in an `!ask` question. |
+| `RATE_LIMIT_PER_USER` | — | `5` | Max commands per user within `RATE_LIMIT_WINDOW`. |
+| `RATE_LIMIT_WINDOW` | — | `60` | Rate-limit window in seconds. |
+| `RATE_LIMIT_GLOBAL` | — | `30` | Max commands across all users within the window (credit-spend cap). |
+| `ALLOWED_CHANNEL_IDS` | — | — | Comma-separated channel IDs the bot may respond in. Empty = all channels. |
+| `IGNORE_DMS` | — | `false` | If `true`, the bot ignores direct messages (servers only). |
 | `LOG_LEVEL` | — | `INFO` | Logging verbosity. |
 | `LOG_FILE` | — | `logs/bot.log` | Log file path. |
 
@@ -259,6 +265,44 @@ consistent behaviour.
 - **Detailed diagnostics** — set `LOG_LEVEL=DEBUG` and check `logs/bot.log`.
 
 ---
+
+## Security & guardrails
+
+The bot is built to be safe to run in a public server. It keeps users on-task
+(asking questions) and can't easily be tampered with:
+
+- **Prompt-injection / jailbreak resistance** — the system prompt hard-locks the
+  bot to prop-firm topics and forbids revealing its instructions, changing its
+  role, or following embedded commands. Every user message is passed to the model
+  wrapped as clearly-delimited *untrusted* input, so attempts like "ignore your
+  instructions" or "print your system prompt" are refused.
+- **No mass pings** — the bot is configured with `allowed_mentions = none`, so it
+  can never be tricked into pinging `@everyone`, `@here`, or roles, regardless of
+  what a firm description or model response contains.
+- **Rate limiting** — per-user and global limits (`RATE_LIMIT_*`) stop spam and
+  cap how fast the bot can spend Anthropic credits. Over-limit users get a polite
+  "slow down" message.
+- **Input bounds** — questions and firm names are length-capped
+  (`MAX_QUESTION_LENGTH`) to limit abuse and token cost.
+- **Scope control** — restrict the bot to specific channels with
+  `ALLOWED_CHANNEL_IDS`, and optionally disable DMs with `IGNORE_DMS`.
+- **No SQL injection** — all database access uses parameterised SQLAlchemy
+  queries; user text is never concatenated into SQL.
+- **No admin/destructive commands** — the command surface is read-only
+  (questions and lookups); there is nothing a user can invoke to mutate or wipe
+  data.
+
+### Recommended Discord & hosting hygiene
+
+- **Grant the bot minimal permissions** — only *View Channel*, *Send Messages*,
+  *Embed Links*, and *Read Message History*. It does **not** need Administrator,
+  kick/ban, or message-management permissions.
+- **Keep secrets in environment variables only** — never commit `.env`. Rotate
+  any token that may have been exposed.
+- **Restrict the invite** — add the bot only to servers you trust, and consider
+  limiting it to a dedicated channel via `ALLOWED_CHANNEL_IDS`.
+- **Least-privilege database user** — point `DATABASE_URL` at a user scoped to
+  the bot's own database.
 
 ## Notes on responsible scraping
 

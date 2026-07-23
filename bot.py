@@ -35,7 +35,7 @@ from discord.ext import commands
 from config import Config, ConfigError, configure_logging
 from database import Database
 from embeddings import EmbeddingClient, cosine_similarity
-from prompts import COMPARE_INSTRUCTIONS, build_system_prompt
+from prompts import COMPARE_INSTRUCTIONS, build_system_prompt, wrap_user_question
 from scraper import PropFirmScraper
 from seed import seed_database
 from validator import FirmValidator
@@ -74,6 +74,20 @@ class TickShiftBot(commands.Bot):
             command_prefix=commands.when_mentioned_or(config.command_prefix),
             intents=intents,
             help_command=None,  # We provide a custom !help.
+            # Hard guarantee the bot can never ping @everyone/@here/roles, even
+            # if a firm description or a model response contains such text.
+            allowed_mentions=discord.AllowedMentions.none(),
+        )
+        # Per-user and global rate limiters to prevent spam / credit abuse.
+        self._user_cooldown = commands.CooldownMapping.from_cooldown(
+            max(1, config.rate_limit_per_user),
+            max(1, config.rate_limit_window),
+            commands.BucketType.user,
+        )
+        self._global_cooldown = commands.CooldownMapping.from_cooldown(
+            max(1, config.rate_limit_global),
+            max(1, config.rate_limit_window),
+            commands.BucketType.default,
         )
         self.config = config
         self.db = db
@@ -86,6 +100,42 @@ class TickShiftBot(commands.Bot):
     def semantic_enabled(self) -> bool:
         """Return whether semantic caching is active (client + toggle present)."""
         return self.embedder is not None and self.config.semantic_cache_enabled
+
+    # -- guardrails --------------------------------------------------------
+
+    def check_rate_limit(self, message: discord.Message) -> Optional[float]:
+        """Check per-user and global rate limits without over-consuming tokens.
+
+        Args:
+            message: The triggering message (identifies the user/bucket).
+
+        Returns:
+            The number of seconds to wait if rate limited, otherwise ``None``.
+        """
+        user_bucket = self._user_cooldown.get_bucket(message)
+        global_bucket = self._global_cooldown.get_bucket(message)
+        # Peek first so we don't consume a token when we're going to reject.
+        retry = user_bucket.get_retry_after() or global_bucket.get_retry_after()
+        if retry:
+            return retry
+        user_bucket.update_rate_limit()
+        global_bucket.update_rate_limit()
+        return None
+
+    def is_allowed_context(self, message: discord.Message) -> bool:
+        """Return whether the bot should respond in this channel / DM.
+
+        Honours the optional channel allowlist and the DM policy.
+
+        Args:
+            message: The incoming message.
+        """
+        if message.guild is None:
+            return not self.config.ignore_dms
+        allowed = self.config.allowed_channel_ids
+        if allowed and message.channel.id not in allowed:
+            return False
+        return True
 
     def semantic_lookup(
         self, kb_version: str, query_embedding: List[float]
@@ -145,6 +195,9 @@ class TickShiftBot(commands.Bot):
         """
         if message.author.bot:
             return  # Ignore other bots and our own messages.
+
+        if not self.is_allowed_context(message):
+            return  # Outside the allowed channels / DMs are disabled.
 
         ctx = await self.get_context(message)
         if ctx.command is not None:
@@ -441,17 +494,38 @@ async def send_chunked(ctx: commands.Context, text: str) -> None:
 def register_commands(bot: TickShiftBot) -> None:
     """Register all bot commands on the given bot instance."""
 
+    async def rate_limited(ctx: commands.Context) -> bool:
+        """Return True (and notify the user) if this call is rate limited."""
+        retry = bot.check_rate_limit(ctx.message)
+        if retry:
+            await ctx.send(
+                f"⏳ Easy there — you're sending commands too fast. "
+                f"Try again in {retry:.0f}s."
+            )
+            return True
+        return False
+
     @bot.command(name="ask")
     async def ask(ctx: commands.Context, *, question: str = "") -> None:
         """Answer a free-text question about prop firms.
 
         Usage: ``!ask <question>``
         """
+        if await rate_limited(ctx):
+            return
+
         question = question.strip()
         if not question:
             await ctx.send(
                 f"Please include a question, e.g. "
                 f"`{bot.config.command_prefix}ask Which firm has the fastest payouts?`"
+            )
+            return
+
+        if len(question) > bot.config.max_question_length:
+            await ctx.send(
+                f"That question is a bit long. Please keep it under "
+                f"{bot.config.max_question_length} characters."
             )
             return
 
@@ -508,7 +582,9 @@ def register_commands(bot: TickShiftBot) -> None:
 
                 # Rebuild the prompt: validation may have ingested new firms.
                 system_prompt = await bot.build_prompt()
-                answer = await bot.ask_claude(system_prompt, question)
+                answer = await bot.ask_claude(
+                    system_prompt, wrap_user_question(question)
+                )
 
                 # Cache the fresh answer (with its embedding) against the KB
                 # that produced it, so both exact and semantic hits work later.
@@ -542,12 +618,19 @@ def register_commands(bot: TickShiftBot) -> None:
 
         Usage: ``!compare <firm1> <firm2>``  (supports quotes and ``vs``)
         """
+        if await rate_limited(ctx):
+            return
+
         firm1, firm2 = _parse_two_firms(firms)
         if not firm1 or not firm2:
             await ctx.send(
                 f"Please name two firms to compare, e.g. "
                 f"`{bot.config.command_prefix}compare FTMO Tradeify`."
             )
+            return
+
+        if len(firm1) > 100 or len(firm2) > 100:
+            await ctx.send("Those firm names are too long.")
             return
 
         async with ctx.typing():
@@ -614,12 +697,19 @@ def register_commands(bot: TickShiftBot) -> None:
 
         Usage: ``!firm <firm_name>``
         """
+        if await rate_limited(ctx):
+            return
+
         firm_name = firm_name.strip().strip('"').strip("'")
         if not firm_name:
             await ctx.send(
                 f"Please name a firm, e.g. "
                 f"`{bot.config.command_prefix}firm Tradeify`."
             )
+            return
+
+        if len(firm_name) > 100:
+            await ctx.send("That firm name is too long.")
             return
 
         async with ctx.typing():
@@ -655,6 +745,8 @@ def register_commands(bot: TickShiftBot) -> None:
 
         Usage: ``!promo``
         """
+        if await rate_limited(ctx):
+            return
         async with ctx.typing():
             try:
                 promos = await asyncio.to_thread(bot.db.get_active_promo_codes)
