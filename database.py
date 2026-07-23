@@ -27,6 +27,7 @@ from sqlalchemy import (
     Text,
     create_engine,
     func,
+    or_,
     select,
     text,
 )
@@ -300,38 +301,77 @@ class Database:
 
     # -- firm queries ------------------------------------------------------
 
+    @staticmethod
+    def _visibility_condition(
+        markets: Optional[Iterable[str]], include_names: Optional[Iterable[str]]
+    ):
+        """Build a WHERE condition: firm is in ``markets`` OR named in include.
+
+        Returns ``None`` when no filtering is requested (show everything).
+        """
+        conditions = []
+        if markets:
+            conditions.append(PropFirm.market.in_(list(markets)))
+        if include_names:
+            lowered = [n.strip().lower() for n in include_names if n.strip()]
+            if lowered:
+                conditions.append(func.lower(PropFirm.name).in_(lowered))
+        if not conditions:
+            return None
+        return or_(*conditions)
+
     def get_all_firms(
-        self, markets: Optional[Iterable[str]] = None
+        self,
+        markets: Optional[Iterable[str]] = None,
+        include_names: Optional[Iterable[str]] = None,
     ) -> List[Dict[str, object]]:
         """Return firms (with details and active promos) as dictionaries.
 
         Args:
-            markets: Optional iterable of allowed markets (e.g. ``{"futures"}``)
-                to filter by. ``None`` returns all firms.
+            markets: Optional iterable of allowed markets (e.g. ``{"futures"}``).
+            include_names: Optional firm names always shown regardless of market.
+                A firm is returned if its market is allowed OR it is named here.
+                Passing neither returns all firms.
         """
         with self.session() as session:
             stmt = select(PropFirm)
-            if markets:
-                stmt = stmt.where(PropFirm.market.in_(list(markets)))
+            condition = self._visibility_condition(markets, include_names)
+            if condition is not None:
+                stmt = stmt.where(condition)
             firms = session.scalars(stmt).all()
             return [firm.to_dict() for firm in firms]
 
     def get_firm_by_name(
-        self, name: str, markets: Optional[Iterable[str]] = None
+        self,
+        name: str,
+        markets: Optional[Iterable[str]] = None,
+        include_names: Optional[Iterable[str]] = None,
     ) -> Optional[Dict[str, object]]:
         """Return a single firm by case-insensitive name, or ``None``.
 
         Args:
             name: The firm name to look up.
             markets: Optional iterable of allowed markets (e.g. ``{"futures"}``).
-                A firm outside these markets is treated as not found.
+            include_names: Optional firm names always allowed regardless of
+                market. A firm outside the allowed markets and not named here is
+                treated as not found.
         """
         with self.session() as session:
             firm = self._find_firm(session, name)
             if firm is None:
                 return None
-            if markets and firm.market not in set(markets):
-                return None
+            if markets or include_names:
+                allowed_markets = set(markets) if markets else set()
+                allowed_names = (
+                    {n.strip().lower() for n in include_names}
+                    if include_names
+                    else set()
+                )
+                if (
+                    firm.market not in allowed_markets
+                    and firm.name.lower() not in allowed_names
+                ):
+                    return None
             return firm.to_dict()
 
     def firm_exists(self, name: str) -> bool:
@@ -458,13 +498,16 @@ class Database:
     # -- promo queries -----------------------------------------------------
 
     def get_active_promo_codes(
-        self, markets: Optional[Iterable[str]] = None
+        self,
+        markets: Optional[Iterable[str]] = None,
+        include_names: Optional[Iterable[str]] = None,
     ) -> List[Dict[str, object]]:
         """Return all active promo codes joined with their firm name.
 
         Args:
-            markets: Optional iterable of allowed markets (e.g. ``{"futures"}``)
-                to filter firms by. ``None`` returns promos for all firms.
+            markets: Optional iterable of allowed markets (e.g. ``{"futures"}``).
+            include_names: Optional firm names always included regardless of
+                market. ``None``/``None`` returns promos for all firms.
         """
         with self.session() as session:
             stmt = (
@@ -472,8 +515,9 @@ class Database:
                 .join(PropFirm, PromoCode.firm_id == PropFirm.id)
                 .where(PromoCode.is_active.is_(True))
             )
-            if markets:
-                stmt = stmt.where(PropFirm.market.in_(list(markets)))
+            condition = self._visibility_condition(markets, include_names)
+            if condition is not None:
+                stmt = stmt.where(condition)
             rows = session.execute(stmt.order_by(PropFirm.name)).all()
             result: List[Dict[str, object]] = []
             for promo, firm_name in rows:

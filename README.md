@@ -188,6 +188,7 @@ just tag the bot and ask naturally.
 | `ALLOWED_CHANNEL_IDS` | — | — | Comma-separated channel IDs the bot may respond in. Empty = all channels. |
 | `IGNORE_DMS` | — | `false` | If `true`, the bot ignores direct messages (servers only). |
 | `FUTURES_ONLY` | — | `true` | Serve/discuss only futures firms; hide forex/CFD & prediction firms (data retained). |
+| `INCLUDED_FIRMS` | — | `FXIFY` | Non-futures firms to keep listed (forex/CFD specifics stripped) in futures-only mode. |
 | `LOG_LEVEL` | — | `INFO` | Logging verbosity. |
 | `LOG_FILE` | — | `logs/bot.log` | Log file path. |
 
@@ -284,7 +285,10 @@ The bot is built to be safe to run in a public server. It keeps users on-task
   profile. The market classification mirrors the TickShift website
   (`funding-predicts` → predictions, `fxify`/`*(CFD)` account types → cfd, the
   rest → futures). Set `FUTURES_ONLY=false` to surface all markets again — no
-  data is lost.
+  data is lost. Specific non-futures firms can be kept in the lineup via
+  `INCLUDED_FIRMS` (default `FXIFY`): they stay listed with their promo code and
+  general details, but their forex/CFD platforms, leverage and account specifics
+  are stripped out.
 - **Topic scope** — the bot answers questions about firms (programs, rules, fees,
   payouts, tiers, platforms, promos, comparisons) and declines trading advice —
   strategies, analysis, price predictions, signals, "how/what to trade" — always

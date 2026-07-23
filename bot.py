@@ -106,9 +106,20 @@ class TickShiftBot(commands.Bot):
 
         In futures-only mode the bot serves and discusses only futures firms;
         forex/CFD and prediction-market firms stay in the database but are
-        hidden from every user-facing view.
+        hidden from every user-facing view (except any explicitly included firm).
         """
         return {"futures"} if self.config.futures_only else None
+
+    def included_firms(self) -> Optional[frozenset]:
+        """Return firm names shown even when outside the allowed markets.
+
+        These are non-futures firms kept in the lineup with their forex/CFD
+        specifics stripped (e.g. FXIFY). Returns ``None`` when not in
+        futures-only mode (every firm is already visible).
+        """
+        if not self.config.futures_only:
+            return None
+        return self.config.included_firm_names or None
 
     # -- guardrails --------------------------------------------------------
 
@@ -379,8 +390,11 @@ class TickShiftBot(commands.Bot):
             A complete system prompt reflecting the live knowledge base.
         """
         markets = self.allowed_markets()
-        firms = await asyncio.to_thread(self.db.get_all_firms, markets)
-        promos = await asyncio.to_thread(self.db.get_active_promo_codes, markets)
+        include = self.included_firms()
+        firms = await asyncio.to_thread(self.db.get_all_firms, markets, include)
+        promos = await asyncio.to_thread(
+            self.db.get_active_promo_codes, markets, include
+        )
         return build_system_prompt(firms, promos, extra_instructions)
 
     async def validate_firms(
@@ -676,9 +690,10 @@ def register_commands(bot: TickShiftBot) -> None:
                 # firm even though it validated as a real firm.
                 markets = bot.allowed_markets()
                 if markets:
+                    include = bot.included_firms()
                     for name in (firm1, firm2):
                         in_scope = await asyncio.to_thread(
-                            bot.db.get_firm_by_name, name, markets
+                            bot.db.get_firm_by_name, name, markets, include
                         )
                         if not in_scope:
                             await ctx.send(
@@ -750,7 +765,10 @@ def register_commands(bot: TickShiftBot) -> None:
                     return
 
                 data = await asyncio.to_thread(
-                    bot.db.get_firm_by_name, firm_name, bot.allowed_markets()
+                    bot.db.get_firm_by_name,
+                    firm_name,
+                    bot.allowed_markets(),
+                    bot.included_firms(),
                 )
                 if not data:
                     # Either unknown, or a non-futures firm hidden in this mode.
@@ -782,7 +800,9 @@ def register_commands(bot: TickShiftBot) -> None:
         async with ctx.typing():
             try:
                 promos = await asyncio.to_thread(
-                    bot.db.get_active_promo_codes, bot.allowed_markets()
+                    bot.db.get_active_promo_codes,
+                    bot.allowed_markets(),
+                    bot.included_firms(),
                 )
                 if not promos:
                     await ctx.send("There are no active promo codes right now.")
