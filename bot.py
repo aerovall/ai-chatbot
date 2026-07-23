@@ -21,6 +21,7 @@ Design notes:
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
 import re
@@ -238,6 +239,49 @@ class TickShiftBot(commands.Bot):
         return True, None
 
 
+# -- answer cache helpers --------------------------------------------------
+
+
+def normalize_question(question: str) -> str:
+    """Normalise a question for cache matching.
+
+    Lowercases, collapses whitespace and strips surrounding punctuation so that
+    trivially different phrasings of the same question share a cache key.
+
+    Args:
+        question: The raw question text.
+
+    Returns:
+        A normalised form suitable for hashing.
+    """
+    normalized = question.strip().lower()
+    normalized = re.sub(r"\s+", " ", normalized)
+    return normalized.strip(" ?!.,")
+
+
+def cache_key(prefix: str, text: str) -> str:
+    """Return a stable SHA-256 hash for a namespaced cache key.
+
+    Args:
+        prefix: A namespace (e.g. ``"ask"`` or ``"compare"``) so different
+            command types never collide.
+        text: The already-normalised text to hash.
+    """
+    return hashlib.sha256(f"{prefix}:{text}".encode("utf-8")).hexdigest()
+
+
+def kb_fingerprint(system_prompt: str) -> str:
+    """Return a fingerprint of the knowledge base for cache invalidation.
+
+    The system prompt is a faithful serialisation of the current firm/promo
+    data, so hashing it yields a version that changes whenever that data does.
+
+    Args:
+        system_prompt: The dynamic system prompt built from the database.
+    """
+    return hashlib.sha256(system_prompt.encode("utf-8")).hexdigest()
+
+
 # -- message chunking utilities -------------------------------------------
 
 
@@ -311,6 +355,22 @@ def register_commands(bot: TickShiftBot) -> None:
 
         async with ctx.typing():
             try:
+                qhash = cache_key("ask", normalize_question(question))
+
+                # Fast path: if we've answered this exact question against the
+                # current knowledge base before, reuse it and skip Claude.
+                if bot.config.qa_cache_enabled:
+                    current_prompt = await bot.build_prompt()
+                    cached = await asyncio.to_thread(
+                        bot.db.get_cached_answer,
+                        qhash,
+                        kb_fingerprint(current_prompt),
+                        bot.config.qa_cache_ttl_days,
+                    )
+                    if cached:
+                        await send_chunked(ctx, cached)
+                        return
+
                 firm_names, ambiguous = await bot.extract_firm_names(question)
 
                 # If a firm is referenced but not named, ask for clarification.
@@ -328,8 +388,20 @@ def register_commands(bot: TickShiftBot) -> None:
                         await ctx.send(message)
                         return
 
+                # Rebuild the prompt: validation may have ingested new firms.
                 system_prompt = await bot.build_prompt()
                 answer = await bot.ask_claude(system_prompt, question)
+
+                # Cache the fresh answer against the KB that produced it.
+                if bot.config.qa_cache_enabled and answer:
+                    await asyncio.to_thread(
+                        bot.db.store_cached_answer,
+                        qhash,
+                        question,
+                        answer,
+                        kb_fingerprint(system_prompt),
+                    )
+
                 await send_chunked(ctx, answer or "I couldn't find an answer to that.")
             except anthropic.AnthropicError:
                 bot.log.exception("Anthropic API error in !ask.")
@@ -359,6 +431,24 @@ def register_commands(bot: TickShiftBot) -> None:
 
         async with ctx.typing():
             try:
+                # Order-independent cache key so "A vs B" and "B vs A" share it.
+                pair = " | ".join(
+                    sorted([firm1.strip().lower(), firm2.strip().lower()])
+                )
+                qhash = cache_key("compare", pair)
+
+                if bot.config.qa_cache_enabled:
+                    current_prompt = await bot.build_prompt(COMPARE_INSTRUCTIONS)
+                    cached = await asyncio.to_thread(
+                        bot.db.get_cached_answer,
+                        qhash,
+                        kb_fingerprint(current_prompt),
+                        bot.config.qa_cache_ttl_days,
+                    )
+                    if cached:
+                        await _send_comparison_embed(ctx, firm1, firm2, cached)
+                        return
+
                 all_valid, message = await bot.validate_firms([firm1, firm2])
                 if not all_valid:
                     # Use a comparison-specific natural message.
@@ -373,6 +463,16 @@ def register_commands(bot: TickShiftBot) -> None:
                     system_prompt,
                     f"Compare {firm1} and {firm2} for a trader deciding between them.",
                 )
+
+                if bot.config.qa_cache_enabled and answer:
+                    await asyncio.to_thread(
+                        bot.db.store_cached_answer,
+                        qhash,
+                        f"compare {firm1} vs {firm2}",
+                        answer,
+                        kb_fingerprint(system_prompt),
+                    )
+
                 await _send_comparison_embed(ctx, firm1, firm2, answer)
             except anthropic.AnthropicError:
                 bot.log.exception("Anthropic API error in !compare.")

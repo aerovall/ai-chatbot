@@ -29,6 +29,10 @@ Additional capabilities:
   yet are researched and stored on demand.
 - **Search caching & refresh** — a `firm_search_cache` table avoids repeated
   lookups and refreshes stale entries (default: every 30 days).
+- **Answer caching** — repeat `!ask`/`!compare` questions are served from a
+  `qa_cache` table instead of calling Claude again, saving API credits. Cached
+  answers are fingerprinted against the knowledge base, so they're automatically
+  regenerated whenever firm or promo data changes.
 - **Long-message handling** — responses are chunked to respect Discord's
   2000-character limit.
 - **Robust error handling & logging** — friendly Discord messages, full logs to
@@ -156,6 +160,8 @@ tickshift-discord-bot/
 | `SCRAPE_MIN_INTERVAL` | — | `2.0` | Minimum seconds between scraping requests. |
 | `SEARCH_REFRESH_DAYS` | — | `30` | Days before a cached firm search is refreshed. |
 | `SEED_ON_STARTUP` | — | `true` | Seed the curated TickShift firm catalogue (firms + promo codes) on startup. |
+| `QA_CACHE_ENABLED` | — | `true` | Cache Claude answers so repeat questions don't re-hit the API. |
+| `QA_CACHE_TTL_DAYS` | — | `0` | Max age (days) for a cached answer; `0` = invalidate only on data change. |
 | `LOG_LEVEL` | — | `INFO` | Logging verbosity. |
 | `LOG_FILE` | — | `logs/bot.log` | Log file path. |
 
@@ -172,6 +178,8 @@ Four tables are created automatically:
 - **`promo_codes`** — active discount codes per firm.
 - **`firm_search_cache`** — records which firms have been validated/searched and
   when, powering the caching and refresh logic.
+- **`qa_cache`** — caches Claude answers to repeat questions, fingerprinted
+  against the knowledge base so stale answers are regenerated automatically.
 
 ---
 
