@@ -90,6 +90,12 @@ def _get_name_set(name: str, default: str = "") -> frozenset:
     return frozenset(names)
 
 
+
+def _get_ttl(name: str, default: str) -> str:
+    """Parse a prompt-cache TTL ("5m" or "1h"), falling back to ``default``."""
+    raw = (os.getenv(name) or default).strip().lower()
+    return raw if raw in {"5m", "1h"} else default
+
 def _get_id_set(name: str) -> frozenset:
     """Parse a comma-separated list of integer IDs into a frozenset.
 
@@ -117,7 +123,7 @@ class Config:
 
     # Optional, tunable values with sensible defaults.
     anthropic_model: str = "claude-sonnet-5"
-    anthropic_max_tokens: int = 1024
+    anthropic_max_tokens: int = 700
     command_prefix: str = "!"
     scrape_min_interval: float = 2.0
     search_refresh_days: int = 30
@@ -139,6 +145,7 @@ class Config:
     included_firm_names: frozenset = frozenset()
     faq_enabled: bool = True
     faq_max_chars: int = 20_000
+    prompt_cache_ttl: str = "1h"
     log_level: str = "INFO"
     log_file: str = "logs/bot.log"
 
@@ -185,7 +192,7 @@ class Config:
             propfirmmatch_base_url=propfirmmatch_base_url.rstrip("/") + "/",
             anthropic_model=os.getenv("ANTHROPIC_MODEL", "claude-sonnet-5").strip()
             or "claude-sonnet-5",
-            anthropic_max_tokens=_get_int("ANTHROPIC_MAX_TOKENS", 1024),
+            anthropic_max_tokens=_get_int("ANTHROPIC_MAX_TOKENS", 700),
             command_prefix=os.getenv("COMMAND_PREFIX", "!").strip() or "!",
             scrape_min_interval=_get_float("SCRAPE_MIN_INTERVAL", 2.0),
             search_refresh_days=_get_int("SEARCH_REFRESH_DAYS", 30),
@@ -207,6 +214,7 @@ class Config:
             included_firm_names=_get_name_set("INCLUDED_FIRMS", "FXIFY"),
             faq_enabled=_get_bool("FAQ_ENABLED", True),
             faq_max_chars=_get_int("FAQ_MAX_CHARS", 20_000),
+            prompt_cache_ttl=_get_ttl("PROMPT_CACHE_TTL", "1h"),
             log_level=os.getenv("LOG_LEVEL", "INFO").strip().upper() or "INFO",
             log_file=os.getenv("LOG_FILE", "logs/bot.log").strip() or "logs/bot.log",
         )
