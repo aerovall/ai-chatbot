@@ -72,6 +72,21 @@ def _get_bool(name: str, default: bool) -> bool:
     return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _get_id_set(name: str) -> frozenset:
+    """Parse a comma-separated list of integer IDs into a frozenset.
+
+    Non-numeric entries are ignored. An empty/unset value yields an empty set
+    (interpreted downstream as "no restriction").
+    """
+    raw = os.getenv(name, "")
+    ids = set()
+    for token in raw.replace(";", ",").split(","):
+        token = token.strip()
+        if token.isdigit():
+            ids.add(int(token))
+    return frozenset(ids)
+
+
 @dataclass(frozen=True)
 class Config:
     """Immutable, validated view of the bot's runtime configuration."""
@@ -95,6 +110,13 @@ class Config:
     semantic_cache_threshold: float = 0.85
     voyage_api_key: str = ""
     voyage_model: str = "voyage-3.5"
+    # Security / abuse guardrails.
+    max_question_length: int = 500
+    rate_limit_per_user: int = 5
+    rate_limit_window: int = 60
+    rate_limit_global: int = 30
+    allowed_channel_ids: frozenset = frozenset()
+    ignore_dms: bool = False
     log_level: str = "INFO"
     log_file: str = "logs/bot.log"
 
@@ -153,6 +175,12 @@ class Config:
             voyage_api_key=_get_required("VOYAGE_API_KEY"),
             voyage_model=os.getenv("VOYAGE_MODEL", "voyage-3.5").strip()
             or "voyage-3.5",
+            max_question_length=_get_int("MAX_QUESTION_LENGTH", 500),
+            rate_limit_per_user=_get_int("RATE_LIMIT_PER_USER", 5),
+            rate_limit_window=_get_int("RATE_LIMIT_WINDOW", 60),
+            rate_limit_global=_get_int("RATE_LIMIT_GLOBAL", 30),
+            allowed_channel_ids=_get_id_set("ALLOWED_CHANNEL_IDS"),
+            ignore_dms=_get_bool("IGNORE_DMS", False),
             log_level=os.getenv("LOG_LEVEL", "INFO").strip().upper() or "INFO",
             log_file=os.getenv("LOG_FILE", "logs/bot.log").strip() or "logs/bot.log",
         )
