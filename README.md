@@ -38,10 +38,11 @@ Additional capabilities:
   ≈ "quickest withdrawals") using embeddings, further reducing Claude calls.
   Falls back to exact-match caching if no key is configured.
 - **FAQ-first answering** — a bundled knowledge base of official help-center
-  FAQ content (`data/faq_knowledge_base.json`; deep coverage for
-  Tradeify, Take Profit Trader and Apex Trader Funding, summary coverage for
-  Lucid Trading, Topstep, My Funded Futures, FundedNext and TradeDay, plus
-  general prop-firm concepts and a quick reference) is searched per question with keyword retrieval (`faq.py`); only
+  FAQ content (`data/faq_knowledge_base.json`; covers all nine
+  futures firms — deep coverage for Tradeify, Take Profit Trader and Apex
+  Trader Funding; summary coverage for Lucid Trading, Topstep, My Funded
+  Futures, FundedNext, TradeDay and Alpha Futures — plus general prop-firm
+  concepts and a quick reference) is searched per question with keyword retrieval (`faq.py`); only
   the relevant excerpts are injected into Claude's context. Answers cite the
   official source URL when available, never invent details, and point users to
   each firm's official help center for anything not covered.
