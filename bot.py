@@ -69,7 +69,9 @@ class TickShiftBot(commands.Bot):
         intents = discord.Intents.default()
         intents.message_content = True  # Required to read command text.
         super().__init__(
-            command_prefix=config.command_prefix,
+            # Accept both an @mention and the text prefix (e.g. "!") so users
+            # can run commands either way: "!promo" or "@Bot promo".
+            command_prefix=commands.when_mentioned_or(config.command_prefix),
             intents=intents,
             help_command=None,  # We provide a custom !help.
         )
@@ -121,6 +123,42 @@ class TickShiftBot(commands.Bot):
             )
             return best_answer
         return None
+
+    # -- message handling --------------------------------------------------
+
+    def _strip_bot_mention(self, content: str) -> str:
+        """Remove this bot's @mention tokens from message content."""
+        if self.user is None:
+            return content
+        return re.sub(rf"<@!?{self.user.id}>", "", content)
+
+    async def on_message(self, message: discord.Message) -> None:
+        """Route messages to commands, treating a bare mention as a question.
+
+        Behaviour:
+        - ``!promo`` / ``@Bot promo`` and other explicit commands run as usual.
+        - ``@Bot <free text>`` with no matching command is treated as ``!ask``,
+          so users can simply mention the bot and ask a question naturally.
+
+        Args:
+            message: The incoming Discord message.
+        """
+        if message.author.bot:
+            return  # Ignore other bots and our own messages.
+
+        ctx = await self.get_context(message)
+        if ctx.command is not None:
+            await self.invoke(ctx)
+            return
+
+        # No command matched. If the bot was directly mentioned, interpret the
+        # remaining text as an !ask question.
+        if self.user in message.mentions and not message.mention_everyone:
+            question = self._strip_bot_mention(message.content).strip()
+            if question:
+                ask_command = self.get_command("ask")
+                if ask_command is not None:
+                    await ctx.invoke(ask_command, question=question)
 
     # -- lifecycle ---------------------------------------------------------
 
@@ -637,9 +675,14 @@ def register_commands(bot: TickShiftBot) -> None:
         Usage: ``!help``
         """
         prefix = bot.config.command_prefix
+        mention = bot.user.mention if bot.user else "@TickShift"
         embed = discord.Embed(
             title="TickShift AI — Commands",
-            description="Your assistant for everything about prop trading firms.",
+            description=(
+                "Your assistant for everything about prop trading firms.\n"
+                f"Tip: you can use `{prefix}` **or** just mention me — "
+                f"e.g. `{mention} which firm has the fastest payouts?`"
+            ),
             color=discord.Color.blurple(),
         )
         embed.add_field(
@@ -676,7 +719,9 @@ def register_commands(bot: TickShiftBot) -> None:
             value="Show this help message.",
             inline=False,
         )
-        embed.set_footer(text="TickShift AI • Powered by Claude")
+        embed.set_footer(
+            text="TickShift AI • Powered by Claude • Use ! or @mention me"
+        )
         await ctx.send(embed=embed)
 
 
