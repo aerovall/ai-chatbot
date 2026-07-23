@@ -187,6 +187,7 @@ just tag the bot and ask naturally.
 | `RATE_LIMIT_GLOBAL` | — | `30` | Max commands across all users within the window (credit-spend cap). |
 | `ALLOWED_CHANNEL_IDS` | — | — | Comma-separated channel IDs the bot may respond in. Empty = all channels. |
 | `IGNORE_DMS` | — | `false` | If `true`, the bot ignores direct messages (servers only). |
+| `FUTURES_ONLY` | — | `true` | Serve/discuss only futures firms; hide forex/CFD & prediction firms (data retained). |
 | `LOG_LEVEL` | — | `INFO` | Logging verbosity. |
 | `LOG_FILE` | — | `logs/bot.log` | Log file path. |
 
@@ -276,12 +277,18 @@ The bot is built to be safe to run in a public server. It keeps users on-task
   role, or following embedded commands. Every user message is passed to the model
   wrapped as clearly-delimited *untrusted* input, so attempts like "ignore your
   instructions" or "print your system prompt" are refused.
-- **Topic scope: prop firms only** — the bot answers questions about firms
-  (programs, rules, fees, payouts, tiers, platforms, promos, comparisons). It
-  declines forex/CFD or other market trading advice — strategies, analysis, price
-  predictions, signals, "how/what to trade" — and redirects to prop-firm topics.
-  It still reports factual firm attributes for forex/CFD-based firms (e.g. that a
-  firm offers MetaTrader).
+- **Futures-only knowledge base** — with `FUTURES_ONLY=true` (the default), the
+  bot serves and discusses **only futures prop firms**. Forex/CFD and
+  prediction-market firms (and forex/CFD account types on hybrid firms) stay in
+  the database but are hidden from every answer, comparison, promo list and firm
+  profile. The market classification mirrors the TickShift website
+  (`funding-predicts` → predictions, `fxify`/`*(CFD)` account types → cfd, the
+  rest → futures). Set `FUTURES_ONLY=false` to surface all markets again — no
+  data is lost.
+- **Topic scope** — the bot answers questions about firms (programs, rules, fees,
+  payouts, tiers, platforms, promos, comparisons) and declines trading advice —
+  strategies, analysis, price predictions, signals, "how/what to trade" — always
+  redirecting to futures prop-firm topics.
 - **No mass pings** — the bot is configured with `allowed_mentions = none`, so it
   can never be tricked into pinging `@everyone`, `@here`, or roles, regardless of
   what a firm description or model response contains.

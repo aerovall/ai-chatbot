@@ -117,6 +117,7 @@ class Config:
     rate_limit_global: int = 30
     allowed_channel_ids: frozenset = frozenset()
     ignore_dms: bool = False
+    futures_only: bool = True
     log_level: str = "INFO"
     log_file: str = "logs/bot.log"
 
@@ -181,6 +182,7 @@ class Config:
             rate_limit_global=_get_int("RATE_LIMIT_GLOBAL", 30),
             allowed_channel_ids=_get_id_set("ALLOWED_CHANNEL_IDS"),
             ignore_dms=_get_bool("IGNORE_DMS", False),
+            futures_only=_get_bool("FUTURES_ONLY", True),
             log_level=os.getenv("LOG_LEVEL", "INFO").strip().upper() or "INFO",
             log_file=os.getenv("LOG_FILE", "logs/bot.log").strip() or "logs/bot.log",
         )
