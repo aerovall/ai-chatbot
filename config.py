@@ -91,6 +91,10 @@ class Config:
     seed_on_startup: bool = True
     qa_cache_enabled: bool = True
     qa_cache_ttl_days: int = 0
+    semantic_cache_enabled: bool = True
+    semantic_cache_threshold: float = 0.85
+    voyage_api_key: str = ""
+    voyage_model: str = "voyage-3.5"
     log_level: str = "INFO"
     log_file: str = "logs/bot.log"
 
@@ -144,6 +148,11 @@ class Config:
             seed_on_startup=_get_bool("SEED_ON_STARTUP", True),
             qa_cache_enabled=_get_bool("QA_CACHE_ENABLED", True),
             qa_cache_ttl_days=_get_int("QA_CACHE_TTL_DAYS", 0),
+            semantic_cache_enabled=_get_bool("SEMANTIC_CACHE_ENABLED", True),
+            semantic_cache_threshold=_get_float("SEMANTIC_CACHE_THRESHOLD", 0.85),
+            voyage_api_key=_get_required("VOYAGE_API_KEY"),
+            voyage_model=os.getenv("VOYAGE_MODEL", "voyage-3.5").strip()
+            or "voyage-3.5",
             log_level=os.getenv("LOG_LEVEL", "INFO").strip().upper() or "INFO",
             log_file=os.getenv("LOG_FILE", "logs/bot.log").strip() or "logs/bot.log",
         )

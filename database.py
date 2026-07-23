@@ -11,13 +11,13 @@ a fresh PostgreSQL database is bootstrapped automatically on first run.
 
 from __future__ import annotations
 
+import json
 import logging
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Iterator, List, Optional
 
 from sqlalchemy import (
-    BigInteger,
     Boolean,
     DateTime,
     ForeignKey,
@@ -28,6 +28,7 @@ from sqlalchemy import (
     create_engine,
     func,
     select,
+    text,
 )
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -201,6 +202,12 @@ class QACache(Base):
     question_text: Mapped[Optional[str]] = mapped_column(Text)
     answer: Mapped[str] = mapped_column(Text, nullable=False)
     kb_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    # JSON-encoded embedding vector of the question (for semantic matching).
+    embedding: Mapped[Optional[str]] = mapped_column(Text)
+    # Command namespace ("ask"/"compare") so different commands never cross-match.
+    namespace: Mapped[Optional[str]] = mapped_column(
+        String(20), default="ask", index=True
+    )
     hit_count: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.current_timestamp()
@@ -235,9 +242,31 @@ class Database:
     # -- lifecycle ---------------------------------------------------------
 
     def init(self) -> None:
-        """Create all tables if they do not already exist."""
+        """Create all tables if they do not already exist and run migrations."""
         Base.metadata.create_all(self._engine)
+        self._migrate()
         logger.info("Database schema verified / created.")
+
+    def _migrate(self) -> None:
+        """Apply lightweight, idempotent schema migrations.
+
+        ``create_all`` does not add new columns to tables that already exist, so
+        for PostgreSQL we additively ensure the semantic-cache columns are
+        present. This is safe to run on every startup.
+        """
+        if self._engine.dialect.name != "postgresql":
+            return  # Fresh SQLite/other DBs already have the current columns.
+        statements = (
+            "ALTER TABLE qa_cache ADD COLUMN IF NOT EXISTS embedding TEXT",
+            "ALTER TABLE qa_cache ADD COLUMN IF NOT EXISTS namespace VARCHAR(20)",
+        )
+        try:
+            with self._engine.begin() as conn:
+                for statement in statements:
+                    conn.execute(text(statement))
+            logger.debug("qa_cache semantic-cache columns verified.")
+        except Exception:  # noqa: BLE001 - migration must not block startup.
+            logger.exception("qa_cache column migration failed (continuing).")
 
     def verify_connection(self) -> None:
         """Open a connection to confirm the database is reachable.
@@ -529,6 +558,8 @@ class Database:
         question_text: str,
         answer: str,
         kb_version: str,
+        embedding: Optional[List[float]] = None,
+        namespace: str = "ask",
     ) -> None:
         """Insert or refresh a cached answer for a question.
 
@@ -537,6 +568,8 @@ class Database:
             question_text: The original question text (for readability/debugging).
             answer: The answer to cache.
             kb_version: Fingerprint of the knowledge base that produced it.
+            embedding: Optional question embedding vector for semantic matching.
+            namespace: Command namespace (e.g. ``"ask"`` or ``"compare"``).
         """
         with self.session() as session:
             entry = session.scalars(
@@ -548,5 +581,51 @@ class Database:
             entry.question_text = (question_text or "")[:2000]
             entry.answer = answer
             entry.kb_version = kb_version
+            entry.namespace = namespace
+            if embedding is not None:
+                entry.embedding = json.dumps(embedding)
             entry.updated_at = datetime.now(timezone.utc)
             logger.debug("Cached answer stored for hash %s.", question_hash[:12])
+
+    def get_semantic_candidates(
+        self, kb_version: str, namespace: str = "ask"
+    ) -> List[Dict[str, object]]:
+        """Return cached entries eligible for semantic matching.
+
+        Only entries produced under the current knowledge base fingerprint and
+        the given namespace, and that carry an embedding, are returned.
+
+        Args:
+            kb_version: Current knowledge base fingerprint.
+            namespace: Command namespace to match.
+
+        Returns:
+            A list of ``{"id", "answer", "embedding"}`` dictionaries, where
+            ``embedding`` is a decoded list of floats.
+        """
+        with self.session() as session:
+            rows = session.scalars(
+                select(QACache).where(
+                    QACache.kb_version == kb_version,
+                    QACache.namespace == namespace,
+                    QACache.embedding.is_not(None),
+                )
+            ).all()
+            candidates: List[Dict[str, object]] = []
+            for row in rows:
+                try:
+                    vector = json.loads(row.embedding) if row.embedding else None
+                except (ValueError, TypeError):
+                    vector = None
+                if vector:
+                    candidates.append(
+                        {"id": row.id, "answer": row.answer, "embedding": vector}
+                    )
+            return candidates
+
+    def register_cache_hit(self, entry_id: int) -> None:
+        """Increment the hit counter for a cached entry by primary key."""
+        with self.session() as session:
+            entry = session.get(QACache, entry_id)
+            if entry is not None:
+                entry.hit_count = (entry.hit_count or 0) + 1
