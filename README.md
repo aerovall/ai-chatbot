@@ -148,6 +148,17 @@ tickshift-discord-bot/
 !help
 ```
 
+You can also **@mention the bot** instead of using the `!` prefix:
+
+```
+@TickShift promo
+@TickShift compare FTMO Tradeify
+@TickShift which firm has the fastest payouts?
+```
+
+A bare mention followed by a plain question is treated as `!ask`, so users can
+just tag the bot and ask naturally.
+
 ---
 
 ## Configuration reference
