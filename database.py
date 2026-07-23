@@ -15,7 +15,7 @@ import json
 import logging
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
-from typing import Dict, Iterator, List, Optional
+from typing import Dict, Iterable, Iterator, List, Optional
 
 from sqlalchemy import (
     Boolean,
@@ -61,6 +61,10 @@ class PropFirm(Base):
     challenge_fee_from: Mapped[Optional[float]] = mapped_column(Numeric(10, 2))
     payout_frequency: Mapped[Optional[str]] = mapped_column(String(255))
     description: Mapped[Optional[str]] = mapped_column(Text)
+    # Market the firm operates in: "futures", "cfd", or "predictions".
+    market: Mapped[Optional[str]] = mapped_column(
+        String(20), default="futures", index=True
+    )
     warning_flag: Mapped[bool] = mapped_column(Boolean, default=False)
     warning_message: Mapped[Optional[str]] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
@@ -87,6 +91,7 @@ class PropFirm(Base):
             "country": self.country,
             "founded_year": self.founded_year,
             "tier": self.tier,
+            "market": self.market,
             "max_allocation": self.max_allocation,
             "profit_split": self.profit_split,
             "challenge_fee_from": (
@@ -259,6 +264,8 @@ class Database:
         statements = (
             "ALTER TABLE qa_cache ADD COLUMN IF NOT EXISTS embedding TEXT",
             "ALTER TABLE qa_cache ADD COLUMN IF NOT EXISTS namespace VARCHAR(20)",
+            "ALTER TABLE prop_firms ADD COLUMN IF NOT EXISTS market VARCHAR(20) "
+            "DEFAULT 'futures'",
         )
         try:
             with self._engine.begin() as conn:
@@ -293,21 +300,39 @@ class Database:
 
     # -- firm queries ------------------------------------------------------
 
-    def get_all_firms(self) -> List[Dict[str, object]]:
-        """Return every firm (with details and active promos) as dictionaries."""
+    def get_all_firms(
+        self, markets: Optional[Iterable[str]] = None
+    ) -> List[Dict[str, object]]:
+        """Return firms (with details and active promos) as dictionaries.
+
+        Args:
+            markets: Optional iterable of allowed markets (e.g. ``{"futures"}``)
+                to filter by. ``None`` returns all firms.
+        """
         with self.session() as session:
-            firms = session.scalars(select(PropFirm)).all()
+            stmt = select(PropFirm)
+            if markets:
+                stmt = stmt.where(PropFirm.market.in_(list(markets)))
+            firms = session.scalars(stmt).all()
             return [firm.to_dict() for firm in firms]
 
-    def get_firm_by_name(self, name: str) -> Optional[Dict[str, object]]:
+    def get_firm_by_name(
+        self, name: str, markets: Optional[Iterable[str]] = None
+    ) -> Optional[Dict[str, object]]:
         """Return a single firm by case-insensitive name, or ``None``.
 
         Args:
             name: The firm name to look up.
+            markets: Optional iterable of allowed markets (e.g. ``{"futures"}``).
+                A firm outside these markets is treated as not found.
         """
         with self.session() as session:
             firm = self._find_firm(session, name)
-            return firm.to_dict() if firm else None
+            if firm is None:
+                return None
+            if markets and firm.market not in set(markets):
+                return None
+            return firm.to_dict()
 
     def firm_exists(self, name: str) -> bool:
         """Return whether a firm with the given name exists locally."""
@@ -348,6 +373,7 @@ class Database:
                 "country",
                 "founded_year",
                 "tier",
+                "market",
                 "max_allocation",
                 "profit_split",
                 "challenge_fee_from",
@@ -431,15 +457,24 @@ class Database:
 
     # -- promo queries -----------------------------------------------------
 
-    def get_active_promo_codes(self) -> List[Dict[str, object]]:
-        """Return all active promo codes joined with their firm name."""
+    def get_active_promo_codes(
+        self, markets: Optional[Iterable[str]] = None
+    ) -> List[Dict[str, object]]:
+        """Return all active promo codes joined with their firm name.
+
+        Args:
+            markets: Optional iterable of allowed markets (e.g. ``{"futures"}``)
+                to filter firms by. ``None`` returns promos for all firms.
+        """
         with self.session() as session:
-            rows = session.execute(
+            stmt = (
                 select(PromoCode, PropFirm.name)
                 .join(PropFirm, PromoCode.firm_id == PropFirm.id)
                 .where(PromoCode.is_active.is_(True))
-                .order_by(PropFirm.name)
-            ).all()
+            )
+            if markets:
+                stmt = stmt.where(PropFirm.market.in_(list(markets)))
+            rows = session.execute(stmt.order_by(PropFirm.name)).all()
             result: List[Dict[str, object]] = []
             for promo, firm_name in rows:
                 entry = promo.to_dict()

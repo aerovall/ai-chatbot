@@ -101,6 +101,15 @@ class TickShiftBot(commands.Bot):
         """Return whether semantic caching is active (client + toggle present)."""
         return self.embedder is not None and self.config.semantic_cache_enabled
 
+    def allowed_markets(self) -> Optional[set]:
+        """Return the set of markets the bot may surface, or ``None`` for all.
+
+        In futures-only mode the bot serves and discusses only futures firms;
+        forex/CFD and prediction-market firms stay in the database but are
+        hidden from every user-facing view.
+        """
+        return {"futures"} if self.config.futures_only else None
+
     # -- guardrails --------------------------------------------------------
 
     def check_rate_limit(self, message: discord.Message) -> Optional[float]:
@@ -369,8 +378,9 @@ class TickShiftBot(commands.Bot):
         Returns:
             A complete system prompt reflecting the live knowledge base.
         """
-        firms = await asyncio.to_thread(self.db.get_all_firms)
-        promos = await asyncio.to_thread(self.db.get_active_promo_codes)
+        markets = self.allowed_markets()
+        firms = await asyncio.to_thread(self.db.get_all_firms, markets)
+        promos = await asyncio.to_thread(self.db.get_active_promo_codes, markets)
         return build_system_prompt(firms, promos, extra_instructions)
 
     async def validate_firms(
@@ -662,6 +672,21 @@ def register_commands(bot: TickShiftBot) -> None:
                     )
                     return
 
+                # In futures-only mode, refuse to compare a hidden (non-futures)
+                # firm even though it validated as a real firm.
+                markets = bot.allowed_markets()
+                if markets:
+                    for name in (firm1, firm2):
+                        in_scope = await asyncio.to_thread(
+                            bot.db.get_firm_by_name, name, markets
+                        )
+                        if not in_scope:
+                            await ctx.send(
+                                "I focus on futures prop firms, so I can't "
+                                "compare that pairing."
+                            )
+                            return
+
                 system_prompt = await bot.build_prompt(COMPARE_INSTRUCTIONS)
                 answer = await bot.ask_claude(
                     system_prompt,
@@ -725,12 +750,19 @@ def register_commands(bot: TickShiftBot) -> None:
                     return
 
                 data = await asyncio.to_thread(
-                    bot.db.get_firm_by_name, firm_name
+                    bot.db.get_firm_by_name, firm_name, bot.allowed_markets()
                 )
                 if not data:
-                    await ctx.send(
-                        "I don't have detailed data on that firm right now."
-                    )
+                    # Either unknown, or a non-futures firm hidden in this mode.
+                    if bot.config.futures_only:
+                        await ctx.send(
+                            "I focus on futures prop firms, so I don't have a "
+                            "profile for that one."
+                        )
+                    else:
+                        await ctx.send(
+                            "I don't have detailed data on that firm right now."
+                        )
                     return
                 await ctx.send(embed=_build_firm_embed(data))
             except Exception:  # noqa: BLE001
@@ -749,7 +781,9 @@ def register_commands(bot: TickShiftBot) -> None:
             return
         async with ctx.typing():
             try:
-                promos = await asyncio.to_thread(bot.db.get_active_promo_codes)
+                promos = await asyncio.to_thread(
+                    bot.db.get_active_promo_codes, bot.allowed_markets()
+                )
                 if not promos:
                     await ctx.send("There are no active promo codes right now.")
                     return

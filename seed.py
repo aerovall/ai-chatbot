@@ -37,6 +37,34 @@ _RULE_LABELS = {
     "eas": "EAs/bots",
 }
 
+# Platform keys that indicate forex/CFD (as opposed to futures) trading.
+_FOREX_PLATFORM_KEYS = {"mt4", "mt5", "dxtrade"}
+
+
+def _firm_market(slug: str) -> str:
+    """Classify a firm's market, mirroring the TickShift website's logic.
+
+    Args:
+        slug: The firm slug.
+
+    Returns:
+        ``"futures"``, ``"cfd"`` or ``"predictions"``.
+    """
+    if slug == "funding-predicts":
+        return "predictions"
+    if slug == "fxify":
+        return "cfd"
+    return "futures"
+
+
+def _account_market(slug: str, account_type_name: str) -> str:
+    """Classify a single account type's market (website ``marketOf`` logic)."""
+    if slug == "funding-predicts":
+        return "predictions"
+    if slug == "fxify" or "cfd" in (account_type_name or "").lower():
+        return "cfd"
+    return "futures"
+
 
 def _parse_allocation(value: Optional[str]) -> Optional[int]:
     """Parse a max-allocation string like ``"$600K"`` or ``"$3M"`` into an int."""
@@ -74,7 +102,22 @@ def _transform_firm(
         A firm dictionary compatible with :meth:`Database.upsert_firm`.
     """
     slug = str(firm.get("slug", ""))
+    market = _firm_market(slug)
     account_types = firm.get("accountTypes", []) or []
+    platform_keys = firm.get("platforms", []) or []
+
+    # For futures firms, keep only the futures side: drop CFD/forex account types
+    # and forex/CFD platforms. Non-futures firms keep their full data (they are
+    # hidden by the futures-only read filter, but stay intact if it is disabled).
+    if market == "futures":
+        account_types = [
+            at
+            for at in account_types
+            if _account_market(slug, at.get("name", "")) == "futures"
+        ]
+        platform_keys = [
+            p for p in platform_keys if p not in _FOREX_PLATFORM_KEYS
+        ]
 
     # Flatten all account sizes to derive headline profit split / cheapest fee.
     sizes = [s for at in account_types for s in at.get("sizes", [])]
@@ -105,13 +148,14 @@ def _transform_firm(
         "country": firm.get("country"),
         "founded_year": firm.get("founded"),
         "tier": tiers.get(slug),
+        "market": market,
         "max_allocation": _parse_allocation(firm.get("maxAllocation")),
         "profit_split": max(splits) if splits else None,
         "challenge_fee_from": min(prices) if prices else None,
         "payout_frequency": firm.get("payoutFrequency"),
         "description": firm.get("description") or firm.get("tagline"),
         "trading_platforms": [
-            platform_labels.get(p, p) for p in firm.get("platforms", []) or []
+            platform_labels.get(p, p) for p in platform_keys
         ],
         "payout_methods": [
             payout_labels.get(p, p) for p in firm.get("payoutMethods", []) or []
