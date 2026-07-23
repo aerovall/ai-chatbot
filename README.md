@@ -218,17 +218,24 @@ effect immediately — no redeployment required.
 
 ### Seed catalogue
 
-On startup the bot seeds a curated set of firms and their active promo codes
-from the [TickShift catalogue](https://www.tickshift.app/) (see `seed.py`), so
-commands like `!promo` and `!firm` return data immediately on a fresh database.
-Seeding is idempotent (upsert by firm name) and can be disabled with
-`SEED_ON_STARTUP=false`. You can also run it manually:
+On startup the bot seeds the full firm catalogue from the
+[TickShift website](https://www.tickshift.app/) — every firm with its tier,
+country, founding year, max allocation, profit split, cheapest challenge fee,
+payout frequency, trading platforms, payout methods, trading rules, account
+types, description and active promo codes. This means `!promo`, `!firm` and
+`!ask` return rich data immediately on a fresh database.
+
+The authoritative data is bundled as `data/tickshift_data.json` and transformed
+into the database schema by `seed.py`. Seeding is idempotent (upsert by firm
+name) and can be disabled with `SEED_ON_STARTUP=false`. You can also run it
+manually:
 
 ```bash
 python seed.py
 ```
 
-To adjust the catalogue or promo codes, edit `SEED_FIRMS` in `seed.py`.
+To refresh the catalogue, replace `data/tickshift_data.json` with a newer export
+and redeploy — no code changes required.
 
 ---
 
